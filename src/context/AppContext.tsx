@@ -1,0 +1,463 @@
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import {
+  Product,
+  Category,
+  BuyingGuide,
+  Comparison,
+  Review,
+  Article,
+  ProblemCollection,
+  BudgetTier,
+  Merchant,
+  Author
+} from '../types';
+import { api } from '../services/api';
+
+// Initial fallback datasets for zero-latency initial paint
+import { products as initialProducts } from '../data/products';
+import { categories as initialCategories } from '../data/categories';
+import { buyingGuides as initialGuides } from '../data/buyingGuides';
+import { comparisons as initialComparisons } from '../data/comparisons';
+import { reviews as initialReviews } from '../data/reviews';
+import { articles as initialArticles } from '../data/articles';
+import { problemCollections as initialProblems } from '../data/problemCollections';
+import { budgetTiers as initialBudgets } from '../data/budgetTiers';
+import { merchants as initialMerchants } from '../data/merchants';
+import { authors as initialAuthors } from '../data/authors';
+
+export interface AdminUser {
+  id: string;
+  email: string;
+  name: string;
+  role: 'OWNER' | 'ADMIN' | 'EDITOR';
+  status: 'active' | 'disabled';
+  lastLogin?: string;
+}
+
+interface AppContextType {
+  // Navigation & Router
+  currentPath: string;
+  navigate: (path: string, options?: { replace?: boolean; scroll?: boolean }) => void;
+
+  // Search Modal
+  searchModalOpen: boolean;
+  setSearchModalOpen: (open: boolean) => void;
+
+  // AI Buying Advisor Modal
+  aiAdvisorOpen: boolean;
+  setAiAdvisorOpen: (open: boolean) => void;
+  initialAiPrompt: string;
+  openAiAdvisorWithPrompt: (prompt?: string) => void;
+
+  // Saved Wishlist
+  savedProductIds: string[];
+  toggleSaveProduct: (productId: string) => void;
+  isProductSaved: (productId: string) => boolean;
+
+  // Compare Tray
+  compareProductIds: string[];
+  addToCompare: (productId: string) => void;
+  removeFromCompare: (productId: string) => void;
+  clearCompare: () => void;
+  isProductInCompare: (productId: string) => boolean;
+
+  // Affiliate Modal & Tracking
+  affiliateRedirect: {
+    isOpen: boolean;
+    productName: string;
+    merchantName: string;
+    url: string;
+  } | null;
+  triggerAffiliateClick: (product: Product, sourcePage?: string, ctaType?: string) => void;
+  closeAffiliateModal: () => void;
+
+  // Live Database Content
+  products: Product[];
+  categories: Category[];
+  buyingGuides: BuyingGuide[];
+  comparisons: Comparison[];
+  reviews: Review[];
+  articles: Article[];
+  problemCollections: ProblemCollection[];
+  budgetTiers: BudgetTier[];
+  merchants: Merchant[];
+  authors: Author[];
+  settings: Record<string, any>;
+  isLoadingData: boolean;
+  refreshPublicData: () => Promise<void>;
+  updateLogoState: (logoUrl: string) => void;
+
+  // Content Lookups
+  getProductBySlug: (slug: string) => Product | undefined;
+  getCategoryBySlug: (slug: string) => Category | undefined;
+  getGuideBySlug: (slug: string) => BuyingGuide | undefined;
+  getComparisonBySlug: (slug: string) => Comparison | undefined;
+  getReviewBySlug: (slug: string) => Review | undefined;
+  getArticleBySlug: (slug: string) => Article | undefined;
+  getProblemBySlug: (slug: string) => ProblemCollection | undefined;
+  getBudgetTierByAmount: (amount: number) => BudgetTier | undefined;
+  getBudgetTierBySlug: (slug: string) => BudgetTier | undefined;
+  getAuthorById: (id: string) => Author | undefined;
+
+  // Admin Auth & RBAC
+  adminUser: AdminUser | null;
+  adminToken: string | null;
+  isAdminAuthenticated: boolean;
+  loginAdmin: (credentials: { email: string; password: string }) => Promise<void>;
+  logoutAdmin: () => Promise<void>;
+  hasRole: (allowedRoles: Array<'OWNER' | 'ADMIN' | 'EDITOR'>) => boolean;
+}
+
+const AppContext = createContext<AppContextType | null>(null);
+
+export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [currentPath, setCurrentPath] = useState<string>(() => {
+    return window.location.pathname || '/';
+  });
+
+  const [searchModalOpen, setSearchModalOpen] = useState(false);
+  const [aiAdvisorOpen, setAiAdvisorOpen] = useState(false);
+  const [initialAiPrompt, setInitialAiPrompt] = useState('');
+
+  const openAiAdvisorWithPrompt = useCallback((prompt?: string) => {
+    if (prompt) {
+      setInitialAiPrompt(prompt);
+    }
+    setAiAdvisorOpen(true);
+  }, []);
+  const [savedProductIds, setSavedProductIds] = useState<string[]>(() => {
+    try {
+      const stored = localStorage.getItem('nidpik_saved_products');
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const [compareProductIds, setCompareProductIds] = useState<string[]>([]);
+  const [affiliateRedirect, setAffiliateRedirect] = useState<{
+    isOpen: boolean;
+    productName: string;
+    merchantName: string;
+    url: string;
+  } | null>(null);
+
+  // Live Database Content States (with initial seed fallbacks)
+  const [products, setProducts] = useState<Product[]>(initialProducts);
+  const [categories, setCategories] = useState<Category[]>(initialCategories);
+  const [buyingGuides, setBuyingGuides] = useState<BuyingGuide[]>(initialGuides);
+  const [comparisons, setComparisons] = useState<Comparison[]>(initialComparisons);
+  const [reviews, setReviews] = useState<Review[]>(initialReviews);
+  const [articles, setArticles] = useState<Article[]>(initialArticles);
+  const [problemCollections, setProblemCollections] = useState<ProblemCollection[]>(initialProblems);
+  const [budgetTiers, setBudgetTiers] = useState<BudgetTier[]>(initialBudgets);
+  const [merchants, setMerchants] = useState<Merchant[]>(initialMerchants);
+  const [authors, setAuthors] = useState<Author[]>(initialAuthors);
+  const [settings, setSettings] = useState<Record<string, any>>({});
+  const [isLoadingData, setIsLoadingData] = useState<boolean>(true);
+
+  // Admin Authentication State
+  const [adminToken, setAdminToken] = useState<string | null>(() => {
+    return localStorage.getItem('nidpik_admin_token') || null;
+  });
+  const [adminUser, setAdminUser] = useState<AdminUser | null>(() => {
+    try {
+      const stored = localStorage.getItem('nidpik_admin_user');
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  // Fetch live bootstrap data from backend database
+  const refreshPublicData = useCallback(async () => {
+    try {
+      const data = await api.public.getBootstrap();
+      if (data) {
+        if (data.products?.length) setProducts(data.products);
+        if (data.categories?.length) setCategories(data.categories);
+        if (data.buyingGuides?.length) setBuyingGuides(data.buyingGuides);
+        if (data.comparisons?.length) setComparisons(data.comparisons);
+        if (data.reviews?.length) setReviews(data.reviews);
+        if (data.articles?.length) setArticles(data.articles);
+        if (data.problemCollections?.length) setProblemCollections(data.problemCollections);
+        if (data.budgetTiers?.length) setBudgetTiers(data.budgetTiers);
+        if (data.merchants?.length) setMerchants(data.merchants);
+        if (data.authors?.length) setAuthors(data.authors);
+        if (data.settings) setSettings(data.settings);
+      }
+    } catch (err) {
+      console.warn('[NIDPIK] Backend bootstrap loaded fallback:', err);
+    } finally {
+      setIsLoadingData(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshPublicData();
+  }, [refreshPublicData]);
+
+  // Verify Admin Session on Mount
+  useEffect(() => {
+    if (adminToken) {
+      api.auth.me()
+        .then((res) => {
+          if (res.user) {
+            setAdminUser(res.user);
+            localStorage.setItem('nidpik_admin_user', JSON.stringify(res.user));
+          }
+        })
+        .catch(() => {
+          // Token invalid or expired
+          setAdminToken(null);
+          setAdminUser(null);
+          localStorage.removeItem('nidpik_admin_token');
+          localStorage.removeItem('nidpik_admin_user');
+        });
+    }
+  }, [adminToken]);
+
+  // Sync route with browser history
+  useEffect(() => {
+    const handlePopState = () => {
+      setCurrentPath(window.location.pathname);
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  // Save wishlist to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem('nidpik_saved_products', JSON.stringify(savedProductIds));
+    } catch (e) {
+      console.warn('Could not save to localStorage', e);
+    }
+  }, [savedProductIds]);
+
+  // Global keyboard shortcut: Cmd+K / Ctrl+K opens search
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setSearchModalOpen(prev => !prev);
+      }
+      if (e.key === 'Escape') {
+        setSearchModalOpen(false);
+        setAffiliateRedirect(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  const navigate = (path: string, options: { replace?: boolean; scroll?: boolean } = { scroll: true }) => {
+    if (options.replace) {
+      window.history.replaceState({}, '', path);
+    } else {
+      window.history.pushState({}, '', path);
+    }
+    setCurrentPath(path);
+    if (options.scroll !== false) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const toggleSaveProduct = (productId: string) => {
+    setSavedProductIds(prev =>
+      prev.includes(productId) ? prev.filter(id => id !== productId) : [...prev, productId]
+    );
+  };
+
+  const isProductSaved = (productId: string) => savedProductIds.includes(productId);
+
+  const addToCompare = (productId: string) => {
+    setCompareProductIds(prev => {
+      if (prev.includes(productId)) return prev;
+      if (prev.length >= 3) {
+        return [...prev.slice(1), productId];
+      }
+      return [...prev, productId];
+    });
+  };
+
+  const removeFromCompare = (productId: string) => {
+    setCompareProductIds(prev => prev.filter(id => id !== productId));
+  };
+
+  const clearCompare = () => setCompareProductIds([]);
+
+  const isProductInCompare = (productId: string) => compareProductIds.includes(productId);
+
+  const triggerAffiliateClick = (product: Product, sourcePage?: string, ctaType?: string) => {
+    // 1. Record analytics click beacon to backend
+    api.analytics.trackClick({
+      productId: product.id,
+      merchantId: product.merchant.id,
+      sourcePage: sourcePage || currentPath,
+      ctaType: ctaType || 'check_price'
+    });
+
+    // 2. Open affiliate modal
+    setAffiliateRedirect({
+      isOpen: true,
+      productName: product.name,
+      merchantName: product.merchant.name,
+      url: product.affiliateUrl
+    });
+  };
+
+  const closeAffiliateModal = () => {
+    setAffiliateRedirect(null);
+  };
+
+  // Content Lookups
+  const getProductBySlug = useCallback((slug: string) => {
+    return products.find(p => p.slug === slug || p.id === slug);
+  }, [products]);
+
+  const getCategoryBySlug = useCallback((slug: string) => {
+    return categories.find(c => c.slug === slug || c.id === slug);
+  }, [categories]);
+
+  const getGuideBySlug = useCallback((slug: string) => {
+    return buyingGuides.find(g => g.slug === slug || g.id === slug);
+  }, [buyingGuides]);
+
+  const getComparisonBySlug = useCallback((slug: string) => {
+    return comparisons.find(c => c.slug === slug || c.id === slug);
+  }, [comparisons]);
+
+  const getReviewBySlug = useCallback((slug: string) => {
+    return reviews.find(r => r.slug === slug || r.id === slug || r.productId === slug);
+  }, [reviews]);
+
+  const getArticleBySlug = useCallback((slug: string) => {
+    return articles.find(a => a.slug === slug || a.id === slug);
+  }, [articles]);
+
+  const getProblemBySlug = useCallback((slug: string) => {
+    return problemCollections.find(p => p.slug === slug || p.id === slug);
+  }, [problemCollections]);
+
+  const getBudgetTierByAmount = useCallback((amount: number) => {
+    return budgetTiers.find(b => b.amount === amount);
+  }, [budgetTiers]);
+
+  const getBudgetTierBySlug = useCallback((slug: string) => {
+    return budgetTiers.find(b => b.slug === slug);
+  }, [budgetTiers]);
+
+  const getAuthorById = useCallback((id: string) => {
+    return authors.find(a => a.id === id);
+  }, [authors]);
+
+  // Admin Auth Handlers
+  const loginAdmin = async (credentials: { email: string; password: string }) => {
+    const res = await api.auth.login(credentials);
+    setAdminToken(res.token);
+    setAdminUser(res.user);
+    localStorage.setItem('nidpik_admin_token', res.token);
+    localStorage.setItem('nidpik_admin_user', JSON.stringify(res.user));
+  };
+
+  const logoutAdmin = async () => {
+    try {
+      await api.auth.logout();
+    } catch {
+      // Continue client cleanup even if network fails
+    }
+    setAdminToken(null);
+    setAdminUser(null);
+    localStorage.removeItem('nidpik_admin_token');
+    localStorage.removeItem('nidpik_admin_user');
+    navigate('/admin/login');
+  };
+
+  const hasRole = useCallback((allowedRoles: Array<'OWNER' | 'ADMIN' | 'EDITOR'>) => {
+    if (!adminUser) return false;
+    return allowedRoles.includes(adminUser.role);
+  }, [adminUser]);
+
+  const updateLogoState = useCallback((newLogoUrl: string) => {
+    setSettings(prev => ({
+      ...prev,
+      general: {
+        ...(prev.general || {}),
+        logoUrl: newLogoUrl
+      }
+    }));
+  }, []);
+
+  return (
+    <AppContext.Provider
+      value={{
+        currentPath,
+        navigate,
+        searchModalOpen,
+        setSearchModalOpen,
+        aiAdvisorOpen,
+        setAiAdvisorOpen,
+        initialAiPrompt,
+        openAiAdvisorWithPrompt,
+        savedProductIds,
+        toggleSaveProduct,
+        isProductSaved,
+        compareProductIds,
+        addToCompare,
+        removeFromCompare,
+        clearCompare,
+        isProductInCompare,
+        affiliateRedirect,
+        triggerAffiliateClick,
+        closeAffiliateModal,
+
+        // Live Database Content
+        products,
+        categories,
+        buyingGuides,
+        comparisons,
+        reviews,
+        articles,
+        problemCollections,
+        budgetTiers,
+        merchants,
+        authors,
+        settings,
+        isLoadingData,
+        refreshPublicData,
+        updateLogoState,
+
+        // Lookups
+        getProductBySlug,
+        getCategoryBySlug,
+        getGuideBySlug,
+        getComparisonBySlug,
+        getReviewBySlug,
+        getArticleBySlug,
+        getProblemBySlug,
+        getBudgetTierByAmount,
+        getBudgetTierBySlug,
+        getAuthorById,
+
+        // Admin Auth & RBAC
+        adminUser,
+        adminToken,
+        isAdminAuthenticated: Boolean(adminToken && adminUser),
+        loginAdmin,
+        logoutAdmin,
+        hasRole
+      }}
+    >
+      {children}
+    </AppContext.Provider>
+  );
+};
+
+export const useApp = () => {
+  const context = useContext(AppContext);
+  if (!context) {
+    throw new Error('useApp must be used within an AppProvider');
+  }
+  return context;
+};

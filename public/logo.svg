@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 460 110" fill="none" width="100%" height="100%">
+  <defs>
+    <!-- Vibrant Sapphire to Azure Gradient -->
+    <linearGradient id="nidpik-blue" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1D4ED8" />
+      <stop offset="50%" stop-color="#2563EB" />
+      <stop offset="100%" stop-color="#38BDF8" />
+    </linearGradient>
+
+    <!-- Warm India Saffron / Coral Accent Gradient -->
+    <linearGradient id="nidpik-accent" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#EA580C" />
+      <stop offset="100%" stop-color="#F97316" />
+    </linearGradient>
+
+    <!-- Emerald Trust Accent -->
+    <linearGradient id="nidpik-emerald" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#059669" />
+      <stop offset="100%" stop-color="#10B981" />
+    </linearGradient>
+
+    <filter id="subtle-shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.12" flood-color="#0F172A" />
+    </filter>
+  </defs>
+
+  <!-- BRAND EMBLEM (Left) -->
+  <g transform="translate(10, 10)" filter="url(#subtle-shadow)">
+    <!-- Rounded Squircle Emblem Frame -->
+    <rect x="0" y="0" width="90" height="90" rx="24" fill="url(#nidpik-blue)" />
+    
+    <!-- Inner Stylized "Pick" Falcon / Needle Bird in flight -->
+    <!-- Wing & Body swoop -->
+    <path d="M22 64 C 28 42, 44 26, 68 22 C 58 32, 54 42, 54 50 C 64 42, 70 38, 76 34 C 70 54, 52 68, 32 70 Z" fill="#FFFFFF" opacity="0.96" />
+    
+    <!-- Accent Pick feather / needle tip -->
+    <path d="M48 24 L68 22 L58 38 C 58 32, 54 26, 48 24 Z" fill="url(#nidpik-accent)" />
+    
+    <!-- Precision Eye dot -->
+    <circle cx="56" cy="30" r="3.5" fill="#1E3A8A" />
+    <circle cx="57" cy="29" r="1.2" fill="#FFFFFF" />
+
+    <!-- Smart Target / Check indicator at bottom corner -->
+    <circle cx="70" cy="70" r="10" fill="#FFFFFF" />
+    <path d="M66 70 L69 73 L75 67" stroke="#16A34A" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" />
+  </g>
+
+  <!-- TYPOGRAPHY: NIDPIK (Right) -->
+  <g transform="translate(116, 12)">
+    <!-- "NID" in Deep Indigo Navy -->
+    <text x="0" y="60" font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif" font-size="52" font-weight="900" letter-spacing="-1.5" fill="#0F172A">
+      NID
+    </text>
+
+    <!-- "PIK" in Vibrant Electric Blue with Accent -->
+    <text x="114" y="60" font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif" font-size="52" font-weight="900" letter-spacing="-1.5" fill="#2563EB">
+      PIK
+    </text>
+
+    <!-- Saffron Dot Accent above I in PIK -->
+    <circle cx="156" cy="22" r="5" fill="url(#nidpik-accent)" />
+
+    <!-- SUBTITLE / TAGLINE -->
+    <text x="3" y="84" font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" font-weight="700" letter-spacing="3" fill="#64748B">
+      FIND <tspan fill="#2563EB">•</tspan> COMPARE <tspan fill="#2563EB">•</tspan> PICK RIGHT
+    </text>
+
+    <!-- India Flag mini bar accent below tagline -->
+    <rect x="238" y="78" width="16" height="3" rx="1.5" fill="#EA580C" />
+    <rect x="256" y="78" width="16" height="3" rx="1.5" fill="#059669" />
+  </g>
+</svg>

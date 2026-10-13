@@ -1,0 +1,27 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  }
+}
+
+/* Custom scrollbar for horizontal category pill rows and clean tables */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Soft card elevation matching modern tech editorial feel */
+.nidpik-card {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.nidpik-card:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.06);
+}
