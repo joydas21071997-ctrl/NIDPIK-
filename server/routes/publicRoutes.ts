@@ -266,7 +266,8 @@ publicRouter.get('/search', (req: Request, res: Response) => {
 
 // Dynamic XML Sitemap
 publicRouter.get('/sitemap.xml', (req: Request, res: Response) => {
-  const baseUrl = process.env.APP_URL || 'https://nidpik.in';
+  const host = req.get('host');
+  const baseUrl = process.env.APP_URL || (host ? `${req.protocol}://${host}` : 'https://nidpik.com');
   const now = new Date().toISOString().split('T')[0];
 
   const products = db.prepare("SELECT slug, updated_at FROM products WHERE status = 'PUBLISHED'").all() as any[];
@@ -323,7 +324,8 @@ publicRouter.get('/sitemap.xml', (req: Request, res: Response) => {
 
 // Dynamic robots.txt
 publicRouter.get('/robots.txt', (req: Request, res: Response) => {
-  const baseUrl = process.env.APP_URL || 'https://nidpik.in';
+  const host = req.get('host');
+  const baseUrl = process.env.APP_URL || (host ? `${req.protocol}://${host}` : 'https://nidpik.com');
   const robots = `User-agent: *
 Allow: /
 Disallow: /admin

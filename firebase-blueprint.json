@@ -1,0 +1,108 @@
+{
+  "entities": {
+    "Product": {
+      "title": "Product",
+      "description": "Product catalog entry with specifications, prices, and affiliate details",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "slug": { "type": "string" },
+        "name": { "type": "string", "maxLength": 200 },
+        "brand": { "type": "string", "maxLength": 100 },
+        "category": { "type": "string" },
+        "categorySlug": { "type": "string" },
+        "price": { "type": "number" },
+        "currency": { "type": "string" },
+        "image": { "type": "string" },
+        "quickVerdict": { "type": "string" },
+        "bestFor": { "type": "string" },
+        "status": { "type": "string", "enum": ["PUBLISHED", "DRAFT", "ARCHIVED"] },
+        "affiliateUrl": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "slug", "name", "brand", "price", "status"]
+    },
+    "Category": {
+      "title": "Category",
+      "description": "Product category taxonomy",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "slug": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "status": { "type": "string", "enum": ["PUBLISHED", "ARCHIVED"] }
+      },
+      "required": ["id", "slug", "name", "status"]
+    },
+    "UserReview": {
+      "title": "UserReview",
+      "description": "Verified user review and feedback for a product",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "productId": { "type": "string" },
+        "authorName": { "type": "string", "maxLength": 100 },
+        "authorEmail": { "type": "string" },
+        "rating": { "type": "number" },
+        "headline": { "type": "string", "maxLength": 150 },
+        "comment": { "type": "string", "maxLength": 2000 },
+        "isVerified": { "type": "boolean" },
+        "status": { "type": "string", "enum": ["PENDING", "APPROVED", "REJECTED"] },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "productId", "authorName", "rating", "comment", "status"]
+    },
+    "PriceAlert": {
+      "title": "PriceAlert",
+      "description": "Price drop notification alert request",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "productId": { "type": "string" },
+        "email": { "type": "string" },
+        "targetPrice": { "type": "number" },
+        "currentPrice": { "type": "number" },
+        "status": { "type": "string", "enum": ["active", "triggered", "unsubscribed"] },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "productId", "email", "targetPrice", "status"]
+    },
+    "User": {
+      "title": "User",
+      "description": "Admin or editor profile",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "email": { "type": "string" },
+        "name": { "type": "string" },
+        "role": { "type": "string", "enum": ["OWNER", "ADMIN", "EDITOR"] },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "email", "role"]
+    }
+  },
+  "firestore": {
+    "/products/{productId}": {
+      "schema": "Product",
+      "description": "Product catalog entries"
+    },
+    "/categories/{categoryId}": {
+      "schema": "Category",
+      "description": "Catalog categories"
+    },
+    "/products/{productId}/reviews/{reviewId}": {
+      "schema": "UserReview",
+      "description": "User reviews under a specific product"
+    },
+    "/price_alerts/{alertId}": {
+      "schema": "PriceAlert",
+      "description": "Price drop alert subscriptions"
+    },
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User administrative profiles"
+    }
+  }
+}

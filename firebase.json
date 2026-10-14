@@ -8,13 +8,6 @@
     ],
     "rewrites": [
       {
-        "source": "/api/**",
-        "run": {
-          "serviceId": "nidpik-backend",
-          "region": "asia-south1"
-        }
-      },
-      {
         "source": "**",
         "destination": "/index.html"
       }

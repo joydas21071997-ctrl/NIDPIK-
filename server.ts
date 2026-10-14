@@ -29,6 +29,14 @@ async function startServer() {
   app.use(express.urlencoded({ extended: true, limit: '10mb' }));
   app.use(cookieParser());
 
+  // Security Headers for Production
+  app.use((req, res, next) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-XSS-Protection', '1; mode=block');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    next();
+  });
+
   // Static uploads directory
   const uploadsDir = path.resolve(process.cwd(), 'public', 'uploads');
   if (!fs.existsSync(uploadsDir)) {

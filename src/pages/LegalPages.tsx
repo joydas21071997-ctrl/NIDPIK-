@@ -176,6 +176,9 @@ export const AffiliateDisclosurePage: React.FC = () => {
           <p>
             NIDPIK is a participant in affiliate marketing programs, including the Amazon Associates Program, Flipkart Affiliate Program, and partner affiliate networks. These programs provide a means for independent publishers to earn advertising fees by linking to official merchant websites.
           </p>
+          <p className="bg-slate-50 border-l-4 border-amber-500 p-3 rounded-r-xl text-xs text-slate-800">
+            <strong>Amazon Associates Statement:</strong> As an Amazon Associate, NIDPIK earns from qualifying purchases. Product prices, discounts, and availability are accurate as of the date/time indicated and are subject to change by Amazon India.
+          </p>
           <p>
             When you click a "Check Price" or "View on Amazon" button on NIDPIK and make a purchase on that merchant site within a specified cookie window, the merchant pays NIDPIK a small referral commission (typically 1% to 6% depending on product category).
           </p>

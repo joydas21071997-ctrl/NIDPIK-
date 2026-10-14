@@ -61,24 +61,24 @@ firebase deploy
 
 ---
 
-## ধাপ ৪: কাস্টম ডোমেন (`nidpik.in`) যুক্ত করা
+## ধাপ ৪: কাস্টম ডোমেন (`nidpik.com`) যুক্ত করা
 
 ১. [Firebase Console](https://console.firebase.google.com/)-এ যান।
 ২. বাঁদিকের মেনু থেকে **Build > Hosting** অপশনে ক্লিক করুন।
 ৩. **"Add custom domain"** বাটন চাপুন।
-৪. আপনার ডোমেনের নাম লিখুন: `nidpik.in` (এবং প্রয়োজনে `www.nidpik.in`).
+৪. আপনার ডোমেনের নাম লিখুন: `nidpik.com` (এবং প্রয়োজনে `www.nidpik.com`).
 ৫. Firebase আপনাকে কিছু **DNS Records** (A Record অথবা TXT Record) প্রদান করবে।
-৬. আপনার যেখান থেকে ডোমেন কেনা (যেমন Namecheap, GoDaddy, Cloudflare, বা Hostinger):
+৬. আপনার GoDaddy ড্যাশবোর্ডে গিয়ে:
    - সেখানে **DNS Management** বা **DNS Settings**-এ যান।
    - Firebase-এর দেওয়া **A Record** (আইপি অ্যাড্রেস) এবং **TXT Record** যুক্ত করে দিন।
-৭. সাধারণত ১৫ মিনিট থেকে ২৪ ঘণ্টার মধ্যে Firebase স্বয়ংক্রিয়ভাবে ফ্রি SSL সার্টিফিকেট (HTTPS) জেনারেট করে দেবে এবং আপনার ডোমেন `https://nidpik.in` লাইভ হয়ে যাবে!
+৭. সাধারণত ১৫ মিনিট থেকে ২৪ ঘণ্টার মধ্যে Firebase স্বয়ংক্রিয়ভাবে ফ্রি SSL সার্টিফিকেট (HTTPS) জেনারেট করে দেবে এবং আপনার ডোমেন `https://nidpik.com` লাইভ হয়ে যাবে!
 
 ---
 
 ## ধাপ ৫: গুগল সার্চ কনসোল ও SEO লঞ্চ
 
 ১. [Google Search Console](https://search.google.com/search-console)-এ যান।
-২. আপনার ডোমেন `https://nidpik.in` যোগ করুন (URL Prefix বা Domain Verification)।
+২. আপনার ডোমেন `https://nidpik.com` যোগ করুন (URL Prefix বা Domain Verification)।
 ৩. ভেরিফাই করার পর বাঁদিকের মেনু থেকে **Sitemaps**-এ যান।
 ৪. সাইটম্যাপের ঘরে লিখুন: `sitemap.xml` এবং **Submit** চাপুন।
 ৫. আমাদের সিস্টেমে তৈরি হওয়া অটোমেটিক ডাইনামিক সাইটম্যাপের কারণে গুগল নিমেষেই আপনার সমস্ত ক্যাটাগরি, প্রোডাক্ট, বাইং গাইড ও রিভিউ পেজ খুঁজে নিয়ে ইন্ডেক্স করা শুরু করবে!

@@ -17,19 +17,38 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/favicon.svg" />
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#2563EB" />
+    <link rel="canonical" href="https://nidpik.com" />
     <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "Organization",
-      "name": "NIDPIK",
-      "url": "https://nidpik.in",
-      "logo": "https://nidpik.in/logo.png",
-      "description": "India-focused product discovery, buying guides, and comparison platform helping consumers find the right product for their actual need.",
-      "sameAs": [
-        "https://twitter.com/nidpik_in",
-        "https://instagram.com/nidpik"
-      ]
-    }
+    [
+      {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "NIDPIK",
+        "url": "https://nidpik.com",
+        "logo": "https://nidpik.com/logo.png",
+        "description": "India-focused product discovery, buying guides, and comparison platform helping consumers find the right product for their actual need.",
+        "sameAs": [
+          "https://twitter.com/nidpik_in",
+          "https://instagram.com/nidpik"
+        ]
+      },
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "NIDPIK",
+        "url": "https://nidpik.com",
+        "potentialAction": {
+          "@type": "SearchAction",
+          "target": {
+            "@type": "EntryPoint",
+            "urlTemplate": "https://nidpik.com/products?q={search_term_string}"
+          },
+          "query-input": "required name=search_term_string"
+        }
+      }
+    ]
     </script>
   </head>
   <body class="bg-[#F8FAFC] text-slate-900 antialiased selection:bg-blue-600 selection:text-white min-h-screen">

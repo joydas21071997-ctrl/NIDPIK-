@@ -52,7 +52,7 @@ import { AdminSettingsPage } from './admin/pages/AdminSettingsPage';
 import { AdminAuditLogsPage } from './admin/pages/AdminAuditLogsPage';
 
 const RouterView: React.FC = () => {
-  const { currentPath } = useApp();
+  const { currentPath, navigate, setSearchModalOpen } = useApp();
 
   // Normalize path (strip query params and trailing slash)
   const path = currentPath.split('?')[0].replace(/\/+$/, '') || '/';
@@ -207,22 +207,32 @@ const RouterView: React.FC = () => {
   if (path === '/privacy') return <PrivacyPolicyPage />;
   if (path === '/terms') return <TermsPage />;
 
-  // Default fallback: 404
+  // Default fallback: 404 Page Not Found
   return (
-    <div className="max-w-4xl mx-auto py-24 px-4 text-center space-y-4">
-      <h1 className="text-3xl font-extrabold text-slate-900">Page Not Found</h1>
-      <p className="text-sm text-slate-600">The link you followed might be outdated or invalid.</p>
-      <a
-        href="/"
-        onClick={(e) => {
-          e.preventDefault();
-          window.history.pushState({}, '', '/');
-          window.location.reload();
-        }}
-        className="inline-block px-5 py-2.5 bg-blue-600 text-white font-semibold text-xs rounded-xl shadow-xs"
-      >
-        Return to NIDPIK Home
-      </a>
+    <div className="max-w-2xl mx-auto py-20 px-4 text-center space-y-4">
+      <div className="w-16 h-16 rounded-3xl bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center mx-auto text-2xl font-black">
+        404
+      </div>
+      <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+        Page Not Found
+      </h1>
+      <p className="text-xs sm:text-sm text-slate-600 max-w-md mx-auto">
+        The link you followed may have been updated, or the product has moved to another budget collection.
+      </p>
+      <div className="flex items-center justify-center gap-3 pt-2">
+        <button
+          onClick={() => navigate('/')}
+          className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-xl shadow-xs transition-colors cursor-pointer"
+        >
+          Return to NIDPIK Home
+        </button>
+        <button
+          onClick={() => setSearchModalOpen(true)}
+          className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl transition-colors cursor-pointer"
+        >
+          Search Products
+        </button>
+      </div>
     </div>
   );
 };

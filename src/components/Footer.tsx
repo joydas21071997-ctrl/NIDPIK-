@@ -331,7 +331,7 @@ export const Footer: React.FC = () => {
           <div className="flex items-start gap-2 bg-slate-800/40 p-3.5 rounded-xl border border-slate-700/50">
             <ShieldCheck className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
             <div>
-              <strong className="text-slate-200">Affiliate Disclosure:</strong> Some links on NIDPIK are affiliate links. If you purchase through these merchant links, we may earn an affiliate commission at zero additional cost to you. NIDPIK does not sell products directly. Product prices, discounts, and availability are subject to merchant updates on Amazon India, Flipkart, and partner websites.
+              <strong className="text-slate-200">Affiliate Disclosure:</strong> As an Amazon Associate, NIDPIK earns from qualifying purchases. If you purchase through merchant links on NIDPIK, we may earn an affiliate commission at zero additional cost to you. NIDPIK does not sell products directly. Product prices, discounts, and availability are subject to merchant updates on Amazon India, Flipkart, and partner websites.
             </div>
           </div>
           <div className="flex flex-col sm:flex-row items-center justify-between pt-4 text-slate-500 text-[11px] gap-2">
