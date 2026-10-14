@@ -11,4 +11,5 @@ yarn-error.log*
 !.env.example
 nidpik.sqlite-shm
 nidpik.sqlite-wal
+.firebase/
 
