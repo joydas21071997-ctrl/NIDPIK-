@@ -13,17 +13,47 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      # actions/setup-node crashes with "Dependencies lock file is not found"
+      # when package-lock.json is absent, so only enable the npm cache when
+      # the lock file actually exists in the checked-out tree.
+      - name: Check npm lock file
+        id: lock
+        run: |
+          if [ -f package-lock.json ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::package-lock.json is not tracked in git. npm cache disabled; a lock file will be generated during install. Commit package-lock.json to restore caching and reproducible installs."
+            echo "present=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 24
-          cache: 'npm'
+          cache: ${{ steps.lock.outputs.present == 'true' && 'npm' || '' }}
 
+      # npm ci is the reproducible path, but it hard-fails when the lock file
+      # is missing or out of sync with package.json. Fall back to npm install
+      # so a bad lock file never blocks a deploy.
       - name: Install Dependencies
-        run: npm ci --no-audit --no-fund
+        run: |
+          if [ -f package-lock.json ] && npm ci --no-audit --no-fund; then
+            echo "Installed exact dependency tree from package-lock.json"
+          else
+            echo "::warning::npm ci unavailable or package-lock.json is out of sync with package.json — falling back to npm install"
+            npm install --no-audit --no-fund
+          fi
 
       - name: Build Production Frontend
         run: npm run build
+
+      - name: Verify build output exists
+        run: |
+          if [ ! -f dist/index.html ]; then
+            echo "::error::Build finished but dist/index.html was not produced. Check the 'public' directory in firebase.json and the vite build output."
+            exit 1
+          fi
+          echo "dist/index.html present, deploying:"
 
       - name: Deploy to Firebase Hosting Live Channel
         uses: FirebaseExtended/action-hosting-deploy@v0
