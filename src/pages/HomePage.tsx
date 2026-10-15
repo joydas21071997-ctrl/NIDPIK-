@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { api } from '../services/api';
+import { db } from '../firebase/config';
+import { doc, setDoc } from 'firebase/firestore';
 import { products } from '../data/products';
 import { budgetTiers } from '../data/budgetTiers';
 import { problemCollections } from '../data/problemCollections';
@@ -23,13 +26,12 @@ import {
   Zap,
   TrendingUp,
   Mail,
-  Send
+  Send,
+  Layers
 } from 'lucide-react';
 
 export const HomePage: React.FC = () => {
   const { navigate, setSearchModalOpen, openAiAdvisorWithPrompt } = useApp();
-
-  const heroImage = '/src/assets/images/nidpik_hero_showcase_1790936631391.jpg';
 
   const [frontEmail, setFrontEmail] = useState('');
   const [frontSubscribed, setFrontSubscribed] = useState(false);
@@ -42,11 +44,29 @@ export const HomePage: React.FC = () => {
 
   const handleFrontSubscribe = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!frontEmail || !frontEmail.includes('@')) return;
+    const cleanEmail = frontEmail.toLowerCase().trim();
+    if (!cleanEmail || !cleanEmail.includes('@')) return;
 
+    // 1. Dual-write to Firebase Firestore
+    try {
+      const subId = 'sub_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+      setDoc(doc(db, 'newsletter_subscribers', subId), {
+        id: subId,
+        email: cleanEmail,
+        source: 'homepage_banner',
+        createdAt: new Date().toISOString()
+      }).catch((err) => console.warn('Firestore subscription note:', err));
+    } catch {
+      // ignore
+    }
+
+    // 2. Write to Backend SQLite
+    api.subscribers.subscribe(cleanEmail, 'homepage_banner').catch(() => {});
+
+    // 3. LocalStorage persistence
     try {
       const existing = JSON.parse(localStorage.getItem('nidpik_subscribers') || '[]');
-      existing.push({ email: frontEmail, date: new Date().toISOString() });
+      existing.push({ email: cleanEmail, source: 'homepage_banner', date: new Date().toISOString() });
       localStorage.setItem('nidpik_subscribers', JSON.stringify(existing));
     } catch {
       // ignore
@@ -132,25 +152,61 @@ export const HomePage: React.FC = () => {
               </div>
             </div>
 
-            {/* Right Column: Hero Visual (Compact on mobile so content below isn't buried) */}
-            <div className="lg:col-span-5 relative mt-1 sm:mt-0">
-              <div className="relative mx-auto rounded-2xl sm:rounded-3xl overflow-hidden shadow-lg border border-white/80 bg-white aspect-16/9 sm:aspect-16/10 lg:aspect-4/3 flex items-center justify-center group max-h-56 sm:max-h-72 lg:max-h-none">
-                <img
-                  src={heroImage}
-                  alt="NIDPIK Curated Indian Lifestyle Products"
-                  className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-500"
-                />
-                
-                {/* Floating Editor Quote Callout */}
-                <div className="absolute top-2.5 right-2.5 sm:top-4 sm:right-4 bg-white/95 backdrop-blur-md px-2 py-0.5 sm:px-3 sm:py-1 rounded-lg sm:rounded-xl border border-slate-200/80 shadow-2xs text-left">
-                  <span className="text-[9px] sm:text-[11px] font-semibold text-slate-800 flex items-center gap-1">
-                    <Sparkles className="w-3 h-3 text-blue-600" />
-                    Useful products for a better you
+            {/* Right Column: Clean, Zero-Crash Editorial Feature Showcase */}
+            <div className="lg:col-span-5 relative mt-3 lg:mt-0">
+              <div className="bg-white/95 backdrop-blur-md rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-lg border border-slate-200/80 space-y-3.5 text-left">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-xl bg-blue-100/70 text-blue-700 flex items-center justify-center font-bold text-xs">
+                      NP
+                    </div>
+                    <div>
+                      <h3 className="text-xs sm:text-sm font-bold text-slate-900 leading-tight">
+                        NIDPIK Product Standard
+                      </h3>
+                      <p className="text-[10px] text-slate-500">Everyday problem discovery engine</p>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                    Verified Tests
                   </span>
                 </div>
 
+                {/* 3 Core Highlights */}
+                <div className="space-y-2 text-xs">
+                  <div className="p-2.5 rounded-xl bg-slate-50 hover:bg-blue-50/50 transition-colors flex items-start gap-2.5">
+                    <Tag className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+                    <div>
+                      <span className="font-bold text-slate-900 block text-[11px] sm:text-xs">Starting from ₹99</span>
+                      <span className="text-[10px] sm:text-[11px] text-slate-500 leading-tight">
+                        Hand-tested budget utility items that deliver everyday reliability.
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="p-2.5 rounded-xl bg-slate-50 hover:bg-blue-50/50 transition-colors flex items-start gap-2.5">
+                    <Zap className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                    <div>
+                      <span className="font-bold text-slate-900 block text-[11px] sm:text-xs">Problem-First Architecture</span>
+                      <span className="text-[10px] sm:text-[11px] text-slate-500 leading-tight">
+                        Designed for small kitchens, WFH desks, student hostel rooms &amp; travel.
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="p-2.5 rounded-xl bg-slate-50 hover:bg-blue-50/50 transition-colors flex items-start gap-2.5">
+                    <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                    <div>
+                      <span className="font-bold text-slate-900 block text-[11px] sm:text-xs">Zero Fabricated Ratings</span>
+                      <span className="text-[10px] sm:text-[11px] text-slate-500 leading-tight">
+                        No fake reviews, no sponsored bias. Real test results and clear affiliate transparency.
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
                 {/* Bottom Trust Floating Bar */}
-                <div className="absolute bottom-2 left-2 right-2 sm:bottom-3 sm:left-3 sm:right-3 bg-slate-900/90 backdrop-blur-md text-white p-1.5 sm:p-2.5 rounded-xl sm:rounded-2xl flex items-center justify-around text-xs font-medium">
+                <div className="bg-slate-900 text-white p-2 sm:p-2.5 rounded-xl flex items-center justify-around text-xs font-medium">
                   <div className="text-center">
                     <span className="block font-black text-blue-400 text-xs sm:text-sm">₹99</span>
                     <span className="text-[8px] sm:text-[9px] text-slate-300">Starts From</span>
@@ -416,6 +472,9 @@ export const HomePage: React.FC = () => {
                 <img
                   src={problem.image}
                   alt={problem.title}
+                  onError={(e) => {
+                    e.currentTarget.src = 'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=600&auto=format&fit=crop&q=80';
+                  }}
                   className="w-full h-full object-cover group-hover:scale-103 transition-transform duration-300"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/20 to-transparent" />
@@ -500,100 +559,6 @@ export const HomePage: React.FC = () => {
               </div>
             </div>
           ))}
-        </div>
-      </section>
-
-      {/* 7. LATEST COMPARISONS & REVIEWS SPLIT SECTION */}
-      <section className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6">
-          
-          {/* Comparisons Column (7 cols) */}
-          <div className="lg:col-span-7 space-y-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-1.5">
-                  <Scale className="w-4 h-4 text-blue-600" />
-                  Product Comparisons
-                </h3>
-                <p className="text-[11px] text-slate-500">Head-to-head battles between close contenders</p>
-              </div>
-              <button
-                onClick={() => navigate('/compare')}
-                className="text-xs font-semibold text-blue-600 hover:text-blue-700 cursor-pointer"
-              >
-                View All →
-              </button>
-            </div>
-
-            <div className="space-y-2">
-              {comparisons.slice(0, 3).map((comp) => (
-                <div
-                  key={comp.id}
-                  onClick={() => navigate(`/compare/${comp.slug}`)}
-                  className="nidpik-card rounded-xl sm:rounded-2xl p-3 cursor-pointer group hover:border-blue-300 transition-all flex flex-col justify-between"
-                >
-                  <div className="flex items-center gap-2 text-[10px] text-slate-500 mb-0.5 font-medium">
-                    <span className="text-blue-600 font-semibold">{comp.category}</span>
-                    <span aria-hidden="true">·</span>
-                    <span>Updated {comp.updatedAt}</span>
-                  </div>
-                  <h4 className="text-xs sm:text-sm font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
-                    {comp.title}
-                  </h4>
-                  <p className="text-[11px] text-slate-500 mt-0.5 line-clamp-1">
-                    {comp.subtitle}
-                  </p>
-                  <div className="mt-2 pt-1.5 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-blue-600">
-                    <span>See Breakdown</span>
-                    <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* In-Depth Reviews Column (5 cols) */}
-          <div className="lg:col-span-5 space-y-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-1.5">
-                  <FileText className="w-4 h-4 text-blue-600" />
-                  Hands-On Reviews
-                </h3>
-                <p className="text-[11px] text-slate-500">Real test results under Indian daily usage</p>
-              </div>
-              <button
-                onClick={() => navigate('/reviews')}
-                className="text-xs font-semibold text-blue-600 hover:text-blue-700 cursor-pointer"
-              >
-                View All →
-              </button>
-            </div>
-
-            <div className="space-y-2">
-              {reviews.slice(0, 3).map((rev) => (
-                <div
-                  key={rev.id}
-                  onClick={() => navigate(`/reviews/${rev.slug}`)}
-                  className="nidpik-card rounded-xl sm:rounded-2xl p-3 cursor-pointer group hover:border-blue-300 transition-all"
-                >
-                  <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded">
-                    Editorial Verdict
-                  </span>
-                  <h4 className="text-xs sm:text-sm font-bold text-slate-900 group-hover:text-blue-600 transition-colors mt-1">
-                    {rev.title}
-                  </h4>
-                  <p className="text-[11px] text-slate-600 mt-0.5 line-clamp-2">
-                    {rev.verdict}
-                  </p>
-                  <div className="mt-2 pt-1.5 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-blue-600">
-                    <span>Read Full Review</span>
-                    <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
         </div>
       </section>
 

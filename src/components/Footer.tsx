@@ -4,6 +4,9 @@ import { useApp } from '../context/AppContext';
 import { ShieldCheck, Sparkles, CheckCircle2, ArrowRight } from 'lucide-react';
 import { categories } from '../data/categories';
 import { budgetTiers } from '../data/budgetTiers';
+import { api } from '../services/api';
+import { db } from '../firebase/config';
+import { collection, addDoc } from 'firebase/firestore';
 
 export const Footer: React.FC = () => {
   const { navigate } = useApp();
@@ -12,7 +15,22 @@ export const Footer: React.FC = () => {
 
   const handleSubscribe = (e: React.FormEvent) => {
     e.preventDefault();
-    if (email.trim() && email.includes('@')) {
+    const cleanEmail = email.trim();
+    if (cleanEmail && cleanEmail.includes('@')) {
+      // 1. Save to Backend Database
+      api.subscribers.subscribe(cleanEmail, 'footer').catch(() => {});
+
+      // 2. Save to Firestore
+      try {
+        addDoc(collection(db, 'newsletter_subscribers'), {
+          email: cleanEmail,
+          source: 'footer',
+          createdAt: new Date().toISOString()
+        }).catch(() => {});
+      } catch {
+        // ignore
+      }
+
       setSubscribed(true);
       setEmail('');
     }

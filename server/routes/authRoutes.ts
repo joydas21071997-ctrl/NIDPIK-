@@ -96,3 +96,39 @@ authRouter.put('/profile', authenticate, (req: AuthenticatedRequest, res: Respon
 
   res.json({ user: updatedUser, message: 'Profile updated successfully.' });
 });
+
+// POST /api/auth/change-password
+authRouter.post('/change-password', authenticate, (req: AuthenticatedRequest, res: Response) => {
+  const { currentPassword, newPassword } = req.body;
+  const user = req.user!;
+
+  if (!currentPassword || !newPassword) {
+    res.status(400).json({ error: 'Current password and new password are required.' });
+    return;
+  }
+
+  if (newPassword.length < 8) {
+    res.status(400).json({ error: 'New password must be at least 8 characters long.' });
+    return;
+  }
+
+  const userRow = db.prepare('SELECT * FROM users WHERE id = ?').get(user.id) as any;
+  if (!userRow) {
+    res.status(404).json({ error: 'User not found.' });
+    return;
+  }
+
+  // Verify current password
+  const isMatch = verifyPassword(currentPassword, userRow.password_hash, userRow.salt);
+  if (!isMatch) {
+    res.status(400).json({ error: 'Current password is incorrect.' });
+    return;
+  }
+
+  // Hash new password
+  const { hash, salt } = hashPassword(newPassword);
+  db.prepare('UPDATE users SET password_hash = ?, salt = ? WHERE id = ?').run(hash, salt, user.id);
+  logAudit(user.id, user.email, 'PASSWORD_CHANGED', 'user', user.id);
+
+  res.json({ success: true, message: 'Password has been successfully changed!' });
+});

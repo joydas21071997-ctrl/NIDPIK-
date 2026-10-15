@@ -24,7 +24,8 @@ import {
   ExternalLink,
   Menu,
   X,
-  UserCheck
+  UserCheck,
+  Mail
 } from 'lucide-react';
 
 interface AdminLayoutProps {
@@ -63,6 +64,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
     { label: 'Affiliate Links', path: '/admin/affiliate-links', icon: Link2 },
     { label: 'Media Library', path: '/admin/media', icon: ImageIcon },
     { label: 'Authors', path: '/admin/authors', icon: UserCheck },
+    { label: 'Subscribers', path: '/admin/subscribers', icon: Mail },
     { label: 'Admin Users', path: '/admin/users', icon: Users, roles: ['OWNER', 'ADMIN'] },
     { label: 'Analytics', path: '/admin/analytics', icon: BarChart3 },
     { label: 'SEO Config', path: '/admin/seo', icon: Globe },

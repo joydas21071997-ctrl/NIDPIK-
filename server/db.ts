@@ -343,6 +343,15 @@ export function initDatabase() {
       created_at TEXT NOT NULL
     );
 
+    -- NEWSLETTER SUBSCRIBERS
+    CREATE TABLE IF NOT EXISTS newsletter_subscribers (
+      id TEXT PRIMARY KEY,
+      email TEXT UNIQUE NOT NULL,
+      source TEXT DEFAULT 'website',
+      status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active', 'unsubscribed')),
+      created_at TEXT NOT NULL
+    );
+
     -- INDEXES for search and fast queries
     CREATE INDEX IF NOT EXISTS idx_products_category ON products(category_slug);
     CREATE INDEX IF NOT EXISTS idx_products_status ON products(status);
@@ -355,6 +364,7 @@ export function initDatabase() {
     CREATE INDEX IF NOT EXISTS idx_audit_time ON audit_logs(created_at);
     CREATE INDEX IF NOT EXISTS idx_price_alerts_prod ON price_alerts(product_id);
     CREATE INDEX IF NOT EXISTS idx_user_reviews_prod ON user_reviews(product_id);
+    CREATE INDEX IF NOT EXISTS idx_subscribers_email ON newsletter_subscribers(email);
   `);
 
   seedDatabaseIfEmpty();
@@ -389,21 +399,21 @@ function seedDatabaseIfEmpty() {
       email: 'admin@nidpik.in',
       name: 'NIDPIK Owner',
       role: 'OWNER',
-      passwords: ['admin', 'Nidpik@Admin2026!']
+      passwords: ['Nidpik@Secure#2026']
     },
     {
       id: 'user_editor',
       email: 'editor@nidpik.in',
       name: 'Senior Content Editor',
       role: 'EDITOR',
-      passwords: ['editor', 'Nidpik@Editor2026!']
+      passwords: ['Nidpik@Editor#2026']
     },
     {
       id: 'user_admin',
       email: 'manager@nidpik.in',
       name: 'Platform Manager',
       role: 'ADMIN',
-      passwords: ['manager', 'Nidpik@Manager2026!']
+      passwords: ['Nidpik@Manager#2026']
     }
   ];
 

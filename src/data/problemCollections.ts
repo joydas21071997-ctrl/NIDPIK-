@@ -7,7 +7,7 @@ export const problemCollections: ProblemCollection[] = [
     slug: 'useful-products-for-small-kitchens',
     tagline: 'Maximize countertop space, eliminate dish clogs, and speed up Indian meal prep.',
     description: 'Compact 1BHK and studio kitchens in Mumbai, Bengaluru, and Delhi often suffer from limited counter slab area. These curated tools reclaim vertical storage and streamline daily cooking.',
-    image: '/src/assets/images/nidpik_kitchen_small_1790936646322.jpg',
+    image: '/images/nidpik_kitchen_small_1790936646322.jpg',
     targetUser: 'Bachelors, renters, and couples living in urban apartments with compact kitchen layouts.',
     productIds: ['solimo-revolving-spice-rack', 'pigeon-electric-kettle', 'prestige-induction-cooktop', 'stainless-steel-sink-strainer', 'solimo-dry-fruit-cutter'],
     adviceTips: [
@@ -22,7 +22,7 @@ export const problemCollections: ProblemCollection[] = [
     slug: 'useful-products-for-work-from-home',
     tagline: 'Fix chronic neck hunching, eliminate cable chaos, and boost study productivity.',
     description: 'Working from a bedroom table or makeshift study causes repetitive ergonomic strain. Elevate your screen to eye level, protect your furniture, and keep your phone visible.',
-    image: '/src/assets/images/nidpik_wfh_desk_1790936657148.jpg',
+    image: '/images/nidpik_wfh_desk_1790936657148.jpg',
     targetUser: 'Remote software engineers, students, freelancers, and designers working 7+ hours at a desk.',
     productIds: ['portronics-my-buddy-stand', 'logitech-b170-wireless-mouse', 'scarters-extended-desk-mat', 'cable-management-silicone-clips', 'wipro-smart-led-desk-lamp'],
     adviceTips: [
@@ -37,7 +37,7 @@ export const problemCollections: ProblemCollection[] = [
     slug: 'useful-travel-products-under-1000',
     tagline: 'Smart commuter gear for Indian railway journeys, flights, and weekend road trips.',
     description: 'Avoid airport luggage excess penalties, stay hydrated in AC sleeper coaches, and keep power banks juiced without spending more than ₹1,000.',
-    image: '/src/assets/images/nidpik_travel_pack_1790936668575.jpg',
+    image: '/images/nidpik_travel_pack_1790936668575.jpg',
     targetUser: 'Frequent train travellers, backpackers, holiday families, and corporate domestic flyers.',
     productIds: ['travalate-digital-luggage-scale', 'orei-universal-travel-adapter', 'milton-water-bottle-steel', 'portronics-konnect-cables', 'almo-bamboo-socks-pack'],
     adviceTips: [
@@ -52,7 +52,7 @@ export const problemCollections: ProblemCollection[] = [
     slug: 'best-budget-products-for-students',
     tagline: 'High-utility hostel and PG essentials that cost very little but make college life easier.',
     description: 'Living in a college hostel or shared paying-guest room demands smart budgeting and rugged gear that handles late-night assignments and power cuts.',
-    image: '/src/assets/images/nidpik_hero_showcase_1790936631391.jpg',
+    image: '/images/nidpik_hero_showcase_1790936631391.jpg',
     targetUser: 'College students, competitive exam aspirants, and young PG residents on limited monthly allowances.',
     productIds: ['boat-airdopes-141', 'wipro-smart-led-desk-lamp', 'softspun-microfiber-pack', 'milton-water-bottle-steel', 'philips-beard-trimmer'],
     adviceTips: [
@@ -67,7 +67,7 @@ export const problemCollections: ProblemCollection[] = [
     slug: 'best-products-for-small-homes',
     tagline: 'Reclaim floor space and automate daily chores in compact urban apartments.',
     description: 'Space is a premium in metro apartments. From wall-hugging organizers to smart Wi-Fi timers that automate heavy geysers, every item here earns its square footage.',
-    image: '/src/assets/images/nidpik_kitchen_small_1790936646322.jpg',
+    image: '/images/nidpik_kitchen_small_1790936646322.jpg',
     targetUser: 'Studio apartment owners, 1BHK tenants, and families looking to de-clutter tight living spaces.',
     productIds: ['wipro-16a-smart-plug', 'solimo-revolving-spice-rack', 'fire-tv-stick-hd', 'philips-smart-wi-fi-bulb', 'prestige-induction-cooktop'],
     adviceTips: [
@@ -82,7 +82,7 @@ export const problemCollections: ProblemCollection[] = [
     slug: 'products-that-help-save-space',
     tagline: 'Smart modular organizers and folding designs that make cramped spaces feel double in size.',
     description: 'Tired of tangled cable nests, overcrowded kitchen cabinets, and overflowing luggage? These modular solutions tuck away seamlessly.',
-    image: '/src/assets/images/nidpik_travel_pack_1790936668575.jpg',
+    image: '/images/nidpik_travel_pack_1790936668575.jpg',
     targetUser: 'Minimalists, organizatonal lovers, and anyone sick of cluttered desk and closet surfaces.',
     productIds: ['triposh-compression-cubes', 'solimo-revolving-spice-rack', 'portronics-my-buddy-stand', 'cable-management-silicone-clips'],
     adviceTips: [

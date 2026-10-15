@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
 import { X, Mail, CheckCircle2, Sparkles, ShieldCheck } from 'lucide-react';
+import { api } from '../services/api';
+import { db } from '../firebase/config';
+import { collection, addDoc } from 'firebase/firestore';
 
 interface SubscribeModalProps {
   isOpen: boolean;
@@ -15,12 +18,28 @@ export const SubscribeModal: React.FC<SubscribeModalProps> = ({ isOpen, onClose 
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !email.includes('@')) return;
+    const cleanEmail = email.trim();
+    if (!cleanEmail || !cleanEmail.includes('@')) return;
+
+    // 1. Store in backend database
+    api.subscribers.subscribe(cleanEmail, `modal_${frequency}`).catch(() => {});
+
+    // 2. Store in Firestore
+    try {
+      addDoc(collection(db, 'newsletter_subscribers'), {
+        email: cleanEmail,
+        frequency,
+        source: 'modal',
+        createdAt: new Date().toISOString()
+      }).catch(() => {});
+    } catch {
+      // ignore
+    }
 
     // Store in localStorage for persistence
     try {
       const existing = JSON.parse(localStorage.getItem('nidpik_subscribers') || '[]');
-      existing.push({ email, frequency, date: new Date().toISOString() });
+      existing.push({ email: cleanEmail, frequency, date: new Date().toISOString() });
       localStorage.setItem('nidpik_subscribers', JSON.stringify(existing));
     } catch {
       // ignore

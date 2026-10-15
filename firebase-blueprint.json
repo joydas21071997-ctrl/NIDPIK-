@@ -81,6 +81,19 @@
         "createdAt": { "type": "string" }
       },
       "required": ["id", "email", "role"]
+    },
+    "NewsletterSubscriber": {
+      "title": "NewsletterSubscriber",
+      "description": "Email newsletter subscriber for product deals and buying guides",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "email": { "type": "string" },
+        "source": { "type": "string" },
+        "frequency": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "email"]
     }
   },
   "firestore": {
@@ -99,6 +112,10 @@
     "/price_alerts/{alertId}": {
       "schema": "PriceAlert",
       "description": "Price drop alert subscriptions"
+    },
+    "/newsletter_subscribers/{subscriberId}": {
+      "schema": "NewsletterSubscriber",
+      "description": "Newsletter subscribers"
     },
     "/users/{userId}": {
       "schema": "User",

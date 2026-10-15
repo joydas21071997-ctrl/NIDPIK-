@@ -37,6 +37,9 @@ export const ProblemsPage: React.FC = () => {
               <img
                 src={problem.image}
                 alt={problem.title}
+                onError={(e) => {
+                  e.currentTarget.src = 'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=600&auto=format&fit=crop&q=80';
+                }}
                 className="w-full h-full object-cover group-hover:scale-103 transition-transform duration-300"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/20 to-transparent" />

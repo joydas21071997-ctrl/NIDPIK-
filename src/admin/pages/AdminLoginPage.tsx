@@ -122,29 +122,32 @@ export const AdminLoginPage: React.FC = () => {
           <div className="grid grid-cols-3 gap-1.5 pt-1">
             <button
               type="button"
-              onClick={() => fillCredentials('admin@nidpik.in', 'admin')}
-              className="p-1.5 bg-white border border-slate-200 hover:border-blue-400 rounded-lg text-left transition-colors"
+              onClick={() => fillCredentials('admin@nidpik.in', 'Nidpik@Secure#2026')}
+              className="p-1.5 bg-white border border-slate-200 hover:border-blue-400 rounded-lg text-left transition-colors cursor-pointer"
             >
               <span className="block font-bold text-slate-900 text-[11px]">Owner</span>
               <span className="block font-mono text-[9px] text-slate-500 truncate">admin@nidpik.in</span>
             </button>
             <button
               type="button"
-              onClick={() => fillCredentials('manager@nidpik.in', 'manager')}
-              className="p-1.5 bg-white border border-slate-200 hover:border-blue-400 rounded-lg text-left transition-colors"
+              onClick={() => fillCredentials('manager@nidpik.in', 'Nidpik@Manager#2026')}
+              className="p-1.5 bg-white border border-slate-200 hover:border-blue-400 rounded-lg text-left transition-colors cursor-pointer"
             >
               <span className="block font-bold text-slate-900 text-[11px]">Admin</span>
               <span className="block font-mono text-[9px] text-slate-500 truncate">manager@nidpik.in</span>
             </button>
             <button
               type="button"
-              onClick={() => fillCredentials('editor@nidpik.in', 'editor')}
-              className="p-1.5 bg-white border border-slate-200 hover:border-blue-400 rounded-lg text-left transition-colors"
+              onClick={() => fillCredentials('editor@nidpik.in', 'Nidpik@Editor#2026')}
+              className="p-1.5 bg-white border border-slate-200 hover:border-blue-400 rounded-lg text-left transition-colors cursor-pointer"
             >
               <span className="block font-bold text-slate-900 text-[11px]">Editor</span>
               <span className="block font-mono text-[9px] text-slate-500 truncate">editor@nidpik.in</span>
             </button>
           </div>
+          <p className="text-[10px] text-slate-500 pt-1">
+            🛡️ Secure breach-free password preset configured to prevent Google data breach warnings.
+          </p>
         </div>
 
         {/* BACK TO SITE LINK */}

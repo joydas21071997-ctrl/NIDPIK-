@@ -391,3 +391,32 @@ adminRouter.get('/audit-logs', authenticate, requireRole(['OWNER', 'ADMIN']), (r
     createdAt: r.created_at
   })));
 });
+
+// ==========================================
+// NEWSLETTER SUBSCRIBERS
+// ==========================================
+adminRouter.get('/subscribers', authenticate, (req: Request, res: Response) => {
+  const subscribers = db.prepare(`
+    SELECT * FROM newsletter_subscribers
+    ORDER BY created_at DESC
+  `).all() as any[];
+
+  res.json({
+    total: subscribers.length,
+    active: subscribers.filter(s => s.status === 'active').length,
+    subscribers: subscribers.map(s => ({
+      id: s.id,
+      email: s.email,
+      source: s.source,
+      status: s.status,
+      createdAt: s.created_at
+    }))
+  });
+});
+
+adminRouter.delete('/subscribers/:id', authenticate, requireRole(['OWNER', 'ADMIN']), (req: AuthenticatedRequest, res: Response) => {
+  const id = req.params.id;
+  db.prepare('DELETE FROM newsletter_subscribers WHERE id = ?').run(id);
+  logAudit(req.user!.id, req.user!.email, 'DELETE_SUBSCRIBER', 'newsletter', id);
+  res.json({ success: true, message: 'Subscriber removed successfully.' });
+});

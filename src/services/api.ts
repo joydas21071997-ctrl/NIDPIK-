@@ -84,6 +84,11 @@ export const api = {
       request<{ user: any; message: string }>('/api/auth/profile', {
         method: 'PUT',
         body: JSON.stringify(data)
+      }),
+    changePassword: (data: { currentPassword: string; newPassword: string }) =>
+      request<{ success: boolean; message: string }>('/api/auth/change-password', {
+        method: 'POST',
+        body: JSON.stringify(data)
       })
   },
 
@@ -442,6 +447,21 @@ export const api = {
       }>('/api/ai/recommend', {
         method: 'POST',
         body: JSON.stringify(body)
+      })
+  },
+
+  // Newsletter Subscribers
+  subscribers: {
+    subscribe: (email: string, source: string = 'website') =>
+      request<{ success: boolean; message: string }>('/api/public/subscribe', {
+        method: 'POST',
+        body: JSON.stringify({ email, source })
+      }),
+    getAll: () =>
+      request<{ total: number; active: number; subscribers: Array<{ id: string; email: string; source: string; status: string; createdAt: string }> }>('/api/admin/subscribers'),
+    delete: (id: string) =>
+      request<{ success: boolean; message: string }>(`/api/admin/subscribers/${id}`, {
+        method: 'DELETE'
       })
   }
 };

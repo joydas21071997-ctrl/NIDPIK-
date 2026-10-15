@@ -264,6 +264,32 @@ publicRouter.get('/search', (req: Request, res: Response) => {
   });
 });
 
+// Newsletter Subscription
+publicRouter.post('/subscribe', (req: Request, res: Response) => {
+  const { email, source } = req.body;
+  if (!email || typeof email !== 'string' || !email.includes('@')) {
+    res.status(400).json({ error: 'Valid email address is required.' });
+    return;
+  }
+
+  const cleanEmail = email.toLowerCase().trim();
+  const now = new Date().toISOString();
+  const id = 'sub_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+
+  try {
+    db.prepare(`
+      INSERT INTO newsletter_subscribers (id, email, source, status, created_at)
+      VALUES (?, ?, ?, 'active', ?)
+      ON CONFLICT(email) DO UPDATE SET status = 'active'
+    `).run(id, cleanEmail, source || 'website', now);
+
+    res.json({ success: true, message: 'Thank you for subscribing to NIDPIK!' });
+  } catch (error: any) {
+    console.error('[NIDPIK] Error saving subscriber:', error);
+    res.status(500).json({ error: 'Failed to record subscription.' });
+  }
+});
+
 // Dynamic XML Sitemap
 publicRouter.get('/sitemap.xml', (req: Request, res: Response) => {
   const host = req.get('host');

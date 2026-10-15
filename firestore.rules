@@ -53,6 +53,16 @@ service cloud.firestore {
       allow update, delete: if isSignedIn();
     }
 
+    // NEWSLETTER SUBSCRIBERS
+    match /newsletter_subscribers/{subscriberId} {
+      allow read: if isSignedIn();
+      allow create: if isValidId(subscriberId) &&
+        request.resource.data.keys().hasAll(['email']) &&
+        request.resource.data.email is string &&
+        request.resource.data.email.size() <= 150;
+      allow update, delete: if isSignedIn();
+    }
+
     // USERS (Admin & Editor Profiles)
     match /users/{userId} {
       allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
