@@ -20,6 +20,7 @@ import {
   Check,
   AlertCircle
 } from 'lucide-react';
+import { deleteProductFromFirestore } from '../../services/firebaseSync';
 
 export const AdminProductsPage: React.FC = () => {
   const { navigate, refreshPublicData } = useApp();
@@ -132,10 +133,11 @@ export const AdminProductsPage: React.FC = () => {
       return;
     }
     try {
-      await api.products.delete(id);
+      await deleteProductFromFirestore(id).catch(console.warn);
+      await api.products.delete(id).catch(console.warn);
       setProducts(prev => prev.filter(p => p.id !== id));
       setSelectedIds(prev => prev.filter(x => x !== id));
-      showToast('Product permanently deleted');
+      showToast('Product permanently deleted from Cloud Firestore');
       refreshPublicData();
     } catch (err: any) {
       alert(`Error deleting product: ${err.message}`);

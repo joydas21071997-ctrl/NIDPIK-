@@ -92,13 +92,13 @@ export const HomePage: React.FC = () => {
                 <span>Smart Choices for Everyday India</span>
               </div>
 
-              {/* Main Headline (Tightened line-height for mobile screens) */}
-              <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-[46px] font-extrabold text-slate-900 tracking-tight leading-[1.18] text-balance">
+              {/* Main Headline (Clean line-height for mobile screens without overlap) */}
+              <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-[46px] font-extrabold text-slate-900 tracking-tight leading-tight pb-1 text-balance">
                 Find the Right Products for <br />
-                <span className="text-blue-600 relative inline-block">
+                <span className="text-blue-600 relative inline-block pb-1.5">
                   Your Need
                   <svg
-                    className="absolute -bottom-1 left-0 w-full h-1.5 text-blue-400"
+                    className="absolute bottom-0 left-0 w-full h-1.5 text-blue-400"
                     viewBox="0 0 100 12"
                     preserveAspectRatio="none"
                     fill="none"

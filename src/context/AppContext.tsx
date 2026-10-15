@@ -12,6 +12,8 @@ import {
   Author
 } from '../types';
 import { api } from '../services/api';
+import { db } from '../firebase/config';
+import { collection, getDocs } from 'firebase/firestore';
 
 // Initial fallback datasets for zero-latency initial paint
 import { products as initialProducts } from '../data/products';
@@ -169,10 +171,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   });
 
-  // Fetch live bootstrap data from backend database
+  // Fetch live bootstrap data from backend database & Cloud Firestore
   const refreshPublicData = useCallback(async () => {
     try {
-      const data = await api.public.getBootstrap();
+      const data = await api.public.getBootstrap().catch(() => null);
       if (data) {
         if (data.products?.length) setProducts(data.products);
         if (data.categories?.length) setCategories(data.categories);
@@ -185,6 +187,71 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (data.merchants?.length) setMerchants(data.merchants);
         if (data.authors?.length) setAuthors(data.authors);
         if (data.settings) setSettings(data.settings);
+      }
+
+      // Synchronize with Cloud Firestore live collections
+      try {
+        // 1. Live Firestore Products
+        const prodSnap = await getDocs(collection(db, 'products'));
+        if (!prodSnap.empty) {
+          const cloudProds: Product[] = [];
+          prodSnap.forEach((d) => {
+            cloudProds.push({ id: d.id, ...d.data() } as Product);
+          });
+          setProducts((prev) => {
+            const map = new Map<string, Product>();
+            prev.forEach((p) => map.set(p.id, p));
+            cloudProds.forEach((p) => map.set(p.id, p));
+            return Array.from(map.values());
+          });
+        }
+
+        // 2. Live Firestore Articles
+        const artSnap = await getDocs(collection(db, 'articles'));
+        if (!artSnap.empty) {
+          const cloudArticles: Article[] = [];
+          artSnap.forEach((d) => {
+            cloudArticles.push({ id: d.id, ...d.data() } as Article);
+          });
+          setArticles((prev) => {
+            const map = new Map<string, Article>();
+            prev.forEach((a) => map.set(a.id, a));
+            cloudArticles.forEach((a) => map.set(a.id, a));
+            return Array.from(map.values());
+          });
+        }
+
+        // 3. Live Firestore Categories
+        const catSnap = await getDocs(collection(db, 'categories'));
+        if (!catSnap.empty) {
+          const cloudCats: Category[] = [];
+          catSnap.forEach((d) => {
+            cloudCats.push({ id: d.id, ...d.data() } as Category);
+          });
+          setCategories((prev) => {
+            const map = new Map<string, Category>();
+            prev.forEach((c) => map.set(c.id, c));
+            cloudCats.forEach((c) => map.set(c.id, c));
+            return Array.from(map.values());
+          });
+        }
+
+        // 4. Live Firestore Buying Guides
+        const guideSnap = await getDocs(collection(db, 'buying_guides'));
+        if (!guideSnap.empty) {
+          const cloudGuides: BuyingGuide[] = [];
+          guideSnap.forEach((d) => {
+            cloudGuides.push({ id: d.id, ...d.data() } as BuyingGuide);
+          });
+          setBuyingGuides((prev) => {
+            const map = new Map<string, BuyingGuide>();
+            prev.forEach((g) => map.set(g.id, g));
+            cloudGuides.forEach((g) => map.set(g.id, g));
+            return Array.from(map.values());
+          });
+        }
+      } catch (fErr) {
+        console.warn('[NIDPIK] Firestore real-time sync note:', fErr);
       }
     } catch (err) {
       console.warn('[NIDPIK] Backend bootstrap loaded fallback:', err);

@@ -13,6 +13,7 @@ import {
   Plus,
   Trash2
 } from 'lucide-react';
+import { saveArticleToFirestore } from '../../services/firebaseSync';
 
 interface Props {
   articleId?: string;

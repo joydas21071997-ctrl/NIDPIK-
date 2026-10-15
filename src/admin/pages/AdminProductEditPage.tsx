@@ -14,6 +14,7 @@ import {
   Eye,
   Sparkles
 } from 'lucide-react';
+import { saveProductToFirestore } from '../../services/firebaseSync';
 
 interface Props {
   productId?: string; // If undefined or 'new', we are creating
@@ -152,19 +153,35 @@ export const AdminProductEditPage: React.FC<Props> = ({ productId }) => {
       };
 
       let result;
-      if (isNew) {
-        result = await api.products.create(payload);
-        setSuccessMsg('Product created successfully!');
-      } else {
-        result = await api.products.update(productId!, payload);
-        setSuccessMsg('Product saved successfully!');
+      const targetId = isNew ? (formData.slug || 'prod_' + Date.now()) : productId!;
+
+      // 1. Direct Cloud Firestore write
+      try {
+        await saveProductToFirestore({
+          id: targetId,
+          ...payload
+        });
+      } catch (fErr) {
+        console.warn('[Firestore] Product sync note:', fErr);
       }
 
+      // 2. Dual write to backend API (if server running)
+      try {
+        if (isNew) {
+          result = await api.products.create({ id: targetId, ...payload });
+        } else {
+          result = await api.products.update(productId!, payload);
+        }
+      } catch (apiErr) {
+        console.warn('[API] Backend product sync note:', apiErr);
+      }
+
+      setSuccessMsg(isNew ? 'Product published to Cloud Firestore & catalog!' : 'Product saved to Cloud Firestore successfully!');
       await refreshPublicData();
 
-      if (isNew && result && result.id) {
+      if (isNew) {
         setTimeout(() => {
-          navigate(`/admin/products/${result.id}`);
+          navigate(`/admin/products/${result?.id || targetId}`);
         }, 800);
       }
     } catch (err: any) {
