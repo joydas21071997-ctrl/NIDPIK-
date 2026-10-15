@@ -3,6 +3,25 @@ export interface ApiResponse<T = any> {
   error?: string;
 }
 
+/**
+ * Error code signalling that the backend API could not be reached in a
+ * meaningful way — e.g. Firebase Hosting answered with the SPA HTML shell
+ * (its `** -> /index.html` rewrite) instead of the Express API. Callers use
+ * this to fall back to Firebase Authentication instead of failing silently.
+ */
+export const API_UNAVAILABLE = 'API_UNAVAILABLE';
+
+export const isApiUnavailable = (err: unknown): boolean => {
+  if (!err || typeof err !== 'object') return false;
+  return (err as { code?: string }).code === API_UNAVAILABLE || err instanceof TypeError;
+};
+
+const apiUnavailableError = (detail: string): Error => {
+  const err = new Error(`Backend API unavailable: ${detail}`) as Error & { code: string };
+  err.code = API_UNAVAILABLE;
+  return err;
+};
+
 const getHeaders = (isFormData: boolean = false): HeadersInit => {
   const headers: Record<string, string> = {};
   if (!isFormData) {
@@ -15,7 +34,11 @@ const getHeaders = (isFormData: boolean = false): HeadersInit => {
   return headers;
 };
 
-async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+async function request<T>(
+  endpoint: string,
+  options: RequestInit = {},
+  expectJson: boolean = false
+): Promise<T> {
   const isFormData = options.body instanceof FormData;
   const headers = {
     ...getHeaders(isFormData),
@@ -43,9 +66,14 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
     return {} as T;
   }
 
-  const contentType = response.headers.get('content-type');
-  if (contentType && contentType.includes('application/json')) {
+  const contentType = response.headers.get('content-type') || '';
+  if (contentType.includes('application/json')) {
     return await response.json();
+  }
+  // Endpoints that must return JSON (auth, admin data) get a definitive error
+  // instead of silently resolving with the hosting SPA shell.
+  if (expectJson) {
+    throw apiUnavailableError(`expected JSON from ${endpoint} but received '${contentType || 'unknown'}'`);
   }
   return (await response.text()) as any;
 }
@@ -72,14 +100,17 @@ export const api = {
   // Auth
   auth: {
     login: (credentials: { email: string; password: string }) =>
-      request<{ token: string; user: any }>('/api/auth/login', {
-        method: 'POST',
-        body: JSON.stringify(credentials)
-      }),
+      request<{ token: string; user: any }>(
+        '/api/auth/login',
+        {
+          method: 'POST',
+          body: JSON.stringify(credentials)
+        },
+        true
+      ),
     logout: () =>
       request<any>('/api/auth/logout', { method: 'POST' }),
-    me: () =>
-      request<{ user: any }>('/api/auth/me'),
+    me: () => request<{ user: any }>('/api/auth/me', {}, true),
     updateProfile: (data: { name?: string; password?: string }) =>
       request<{ user: any; message: string }>('/api/auth/profile', {
         method: 'PUT',

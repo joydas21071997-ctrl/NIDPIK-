@@ -12,6 +12,12 @@ import {
   Author
 } from '../types';
 import { api } from '../services/api';
+import { isApiUnavailable } from '../services/api';
+import {
+  firebaseAdminLogin,
+  firebaseAdminLogout,
+  isFirebaseSessionActive
+} from '../services/adminAuth';
 import { db } from '../firebase/config';
 import { collection, getDocs } from 'firebase/firestore';
 
@@ -266,22 +272,43 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Verify Admin Session on Mount
   useEffect(() => {
-    if (adminToken) {
-      api.auth.me()
-        .then((res) => {
-          if (res.user) {
-            setAdminUser(res.user);
-            localStorage.setItem('nidpik_admin_user', JSON.stringify(res.user));
-          }
-        })
-        .catch(() => {
-          // Token invalid or expired
-          setAdminToken(null);
-          setAdminUser(null);
-          localStorage.removeItem('nidpik_admin_token');
-          localStorage.removeItem('nidpik_admin_user');
-        });
+    if (!adminToken) {
+      return;
     }
+    let cancelled = false;
+
+    const clearSession = () => {
+      if (cancelled) return;
+      setAdminToken(null);
+      setAdminUser(null);
+      localStorage.removeItem('nidpik_admin_token');
+      localStorage.removeItem('nidpik_admin_user');
+    };
+
+    api.auth.me()
+      .then((res) => {
+        if (!cancelled && res.user) {
+          setAdminUser(res.user);
+          localStorage.setItem('nidpik_admin_user', JSON.stringify(res.user));
+        }
+      })
+      .catch(async (err) => {
+        // Real API rejection (expired/invalid session): drop the session.
+        if (!isApiUnavailable(err)) {
+          clearSession();
+          return;
+        }
+        // Backend unreachable (static hosting): keep the session only while
+        // Firebase Authentication still reports an active sign-in.
+        const stillSignedIn = await isFirebaseSessionActive();
+        if (!stillSignedIn) {
+          clearSession();
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [adminToken]);
 
   // Sync route with browser history
@@ -420,15 +447,43 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [authors]);
 
   // Admin Auth Handlers
+  const applyAdminSession = (token: string, user: AdminUser) => {
+    setAdminToken(token);
+    setAdminUser(user);
+    localStorage.setItem('nidpik_admin_token', token);
+    localStorage.setItem('nidpik_admin_user', JSON.stringify(user));
+  };
+
   const loginAdmin = async (credentials: { email: string; password: string }) => {
-    const res = await api.auth.login(credentials);
-    setAdminToken(res.token);
-    setAdminUser(res.user);
-    localStorage.setItem('nidpik_admin_token', res.token);
-    localStorage.setItem('nidpik_admin_user', JSON.stringify(res.user));
+    // 1) Express backend session (dev / AI Studio, or hosting with an API wired).
+    try {
+      const res = await api.auth.login(credentials);
+      if (res && typeof res.token === 'string' && res.token && res.user) {
+        applyAdminSession(res.token, res.user);
+        return;
+      }
+      // JSON arrived but no usable session — treat as backend unavailable.
+      const malformed = new Error('Malformed login response from backend') as Error & {
+        code: string;
+      };
+      malformed.code = 'API_UNAVAILABLE';
+      throw malformed;
+    } catch (err) {
+      // A definitive API rejection (wrong password against a healthy API) is
+      // surfaced as-is; only an unreachable/misrouted API falls through.
+      if (!isApiUnavailable(err)) {
+        throw err;
+      }
+    }
+
+    // 2) Firebase Authentication fallback — the production path on static
+    //    Firebase Hosting, where /api/* resolves to the SPA shell.
+    const { token, user } = await firebaseAdminLogin(credentials.email, credentials.password);
+    applyAdminSession(token, user as AdminUser);
   };
 
   const logoutAdmin = async () => {
+    await firebaseAdminLogout();
     try {
       await api.auth.logout();
     } catch {
