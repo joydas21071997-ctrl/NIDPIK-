@@ -172,12 +172,16 @@ const RouterView: React.FC = () => {
     return <ReviewDetailPage slug={slug} />;
   }
 
-  // 8. Articles
-  if (path === '/articles') {
+  // 8. Articles & Blog
+  if (path === '/articles' || path === '/blog') {
     return <ArticlesPage />;
   }
   if (path.startsWith('/articles/')) {
     const slug = path.replace('/articles/', '');
+    return <ArticleDetailPage slug={slug} />;
+  }
+  if (path.startsWith('/blog/')) {
+    const slug = path.replace('/blog/', '');
     return <ArticleDetailPage slug={slug} />;
   }
 
@@ -247,9 +251,9 @@ const AppShell: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#F8FAFC] text-slate-900 font-sans selection:bg-blue-600 selection:text-white">
+    <div className="min-h-screen flex flex-col bg-[#F8FAFC] text-slate-900 font-sans selection:bg-blue-600 selection:text-white overflow-x-hidden w-full max-w-full">
       <Header />
-      <main className="flex-1">
+      <main className="flex-1 w-full max-w-full overflow-x-hidden">
         <RouterView />
       </main>
       <Footer />

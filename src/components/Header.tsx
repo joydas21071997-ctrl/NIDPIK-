@@ -17,15 +17,19 @@ import { categories } from '../data/categories';
 import { budgetTiers } from '../data/budgetTiers';
 import { SubscribeModal } from './SubscribeModal';
 import { AuthModal } from './AuthModal';
+import { RegionSelector } from './RegionSelector';
+import { COUNTRIES } from '../context/AppContext';
 
 export const Header: React.FC = () => {
   const {
     navigate,
     currentPath,
     setSearchModalOpen,
-    openAiAdvisorWithPrompt,
     savedProductIds,
-    compareProductIds
+    compareProductIds,
+    selectedCountry,
+    setSelectedCountry,
+    formatPrice
   } = useApp();
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -34,6 +38,8 @@ export const Header: React.FC = () => {
   const [subscribeModalOpen, setSubscribeModalOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [userEmail, setUserEmail] = useState<string | null>(null);
+
+
 
   useEffect(() => {
     setUserEmail(localStorage.getItem('nidpik_user_email'));
@@ -166,12 +172,7 @@ export const Header: React.FC = () => {
                           }}
                           className="flex items-center justify-between px-3 py-1.5 text-xs text-slate-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors"
                         >
-                          <span className="font-semibold">Under ₹{tier.amount.toLocaleString('en-IN')}</span>
-                          {tier.amount === 99 && (
-                            <span className="text-[10px] bg-blue-100 text-blue-700 font-bold px-1.5 py-0.5 rounded">
-                              STARTS
-                            </span>
-                          )}
+                          <span className="font-semibold">{`Under ${formatPrice(tier.amount)}`}</span>
                         </a>
                       ))}
                     </div>
@@ -232,51 +233,15 @@ export const Header: React.FC = () => {
               </a>
             </nav>
 
-            {/* ZONE 3: ACTIONS (SEARCH + SUBSCRIBE + USER + SAVED + MOBILE TRIGGER) */}
+            {/* ZONE 3: ACTIONS (SEARCH + COUNTRY + SUBSCRIBE + USER + SAVED + MOBILE TRIGGER) */}
             <div className="flex items-center gap-1.5 sm:gap-2">
-              {/* AI Buying Advisor Trigger */}
-              <button
-                onClick={() => openAiAdvisorWithPrompt()}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 rounded-full shadow-2xs hover:shadow-xs transition-all cursor-pointer group"
-                title="Ask NIDPIK AI for product recommendations"
-                aria-label="Ask AI"
-              >
-                <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse group-hover:rotate-12 transition-transform" />
-                <span className="hidden sm:inline">Ask AI</span>
-                <span className="sm:hidden text-[11px]">AI</span>
-              </button>
 
-              {/* Quick Search Button */}
-              <button
-                onClick={() => setSearchModalOpen(true)}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-slate-600 bg-slate-100 hover:bg-blue-50 hover:text-blue-700 border border-slate-200 rounded-full transition-all cursor-pointer"
-                title="Search products, guides, reviews"
-                aria-label="Search"
-              >
-                <Search className="w-3.5 h-3.5 text-slate-500" />
-                <span className="hidden sm:inline font-medium">Search needs or ₹...</span>
-                <span className="sm:hidden text-[11px] font-semibold">Search</span>
-              </button>
+              {/* Market / Country Selector */}
+              <RegionSelector />
 
-              {/* Front Subscribe Button (Desktop) */}
-              <button
-                onClick={() => setSubscribeModalOpen(true)}
-                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-full transition-all cursor-pointer"
-                title="Subscribe for weekly picks"
-              >
-                <Mail className="w-3.5 h-3.5 text-blue-600" />
-                <span>Subscribe</span>
-              </button>
 
-              {/* Front Subscribe Button (Mobile icon) */}
-              <button
-                onClick={() => setSubscribeModalOpen(true)}
-                className="sm:hidden p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                title="Subscribe for email updates"
-                aria-label="Subscribe"
-              >
-                <Mail className="w-4 h-4" />
-              </button>
+
+
 
               {/* Login / Profile Button */}
               <button
@@ -392,18 +357,6 @@ export const Header: React.FC = () => {
                 {userEmail ? 'Manage Account' : 'Sign In'}
               </button>
             </div>
-
-            {/* Ask AI Banner in Mobile Drawer */}
-            <button
-              onClick={() => {
-                setMobileMenuOpen(false);
-                openAiAdvisorWithPrompt();
-              }}
-              className="w-full py-2.5 px-3 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-2"
-            >
-              <Sparkles className="w-4 h-4 text-amber-300 animate-pulse" />
-              <span>Ask NIDPIK AI Product Advisor</span>
-            </button>
 
             <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400 px-1">Main Sections</div>
             <div className="grid grid-cols-2 gap-2 text-xs font-semibold">

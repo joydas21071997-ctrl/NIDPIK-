@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useApp } from '../context/AppContext';
+import { useApp, COUNTRIES } from '../context/AppContext';
 import { getProductBySlug, products, buyingGuides, comparisons, reviews } from '../data';
 import { api } from '../services/api';
 import { Breadcrumbs } from '../components/Breadcrumbs';
@@ -37,8 +37,12 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ slug }) =>
     addToCompare,
     removeFromCompare,
     isProductInCompare,
-    triggerAffiliateClick
+    triggerAffiliateClick,
+    selectedCountry
   } = useApp();
+
+  const isIndia = selectedCountry === 'IN';
+  const currentCountry = COUNTRIES.find((c) => c.code === selectedCountry) || COUNTRIES[0];
 
   const product = getProductBySlug(slug);
   const [imgError, setImgError] = useState(false);
@@ -268,54 +272,70 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ slug }) =>
             </div>
 
             {/* Price Row */}
-            <div className="p-4 bg-slate-50/70 rounded-2xl border border-slate-200/80 flex flex-wrap items-baseline justify-between gap-4">
-              <div>
-                <span className="text-xs text-slate-500 block mb-0.5">Estimated Price on {product.merchant.name}</span>
-                <div className="flex items-baseline gap-3">
-                  <span className="text-3xl font-extrabold text-slate-900 tabular-nums">
-                    ₹{product.price.toLocaleString('en-IN')}
-                  </span>
-                  {product.oldPrice && (
-                    <span className="text-sm text-slate-600 line-through tabular-nums">
-                      MRP ₹{product.oldPrice.toLocaleString('en-IN')}
-                    </span>
-                  )}
-                  {discountPercent && (
-                    <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">
-                      Save {discountPercent}%
-                    </span>
-                  )}
+            <div className="p-4 bg-slate-50/70 rounded-2xl border border-slate-200/80 space-y-3">
+              {!isIndia && (
+                <div className="text-xs text-amber-800 bg-amber-50 p-2.5 rounded-xl border border-amber-200 flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                  <span>Verified local offer unavailable for {currentCountry.name} ({currentCountry.currencySymbol}). Curated for Indian market (₹).</span>
                 </div>
-              </div>
+              )}
+              <div className="flex flex-wrap items-baseline justify-between gap-4">
+                <div>
+                  <span className="text-xs text-slate-500 block mb-0.5">
+                    {isIndia ? `Estimated Price on ${product.merchant.name}` : `Curated Market Price (India)`}
+                  </span>
+                  <div className="flex items-baseline gap-3">
+                    <span className="text-3xl font-extrabold text-slate-900 tabular-nums">
+                      ₹{product.price.toLocaleString('en-IN')}
+                    </span>
+                    {isIndia && product.oldPrice && (
+                      <span className="text-sm text-slate-600 line-through tabular-nums">
+                        MRP ₹{product.oldPrice.toLocaleString('en-IN')}
+                      </span>
+                    )}
+                    {isIndia && discountPercent && (
+                      <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">
+                        Save {discountPercent}%
+                      </span>
+                    )}
+                  </div>
+                </div>
 
-              {/* ACTION BUTTONS */}
-              <div className="flex items-center gap-2 w-full sm:w-auto">
-                <button
-                  onClick={() => triggerAffiliateClick(product)}
-                  className="flex-1 sm:flex-initial py-3 px-6 bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm rounded-xl transition-all shadow-md flex items-center justify-center gap-2 group"
-                >
-                  <span>Check Price on {product.merchant.name.split(' ')[0]}</span>
-                  <ExternalLink className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
-                </button>
+                {/* ACTION BUTTONS */}
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  {isIndia ? (
+                    <button
+                      onClick={() => triggerAffiliateClick(product)}
+                      className="flex-1 sm:flex-initial py-3 px-6 bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm rounded-xl transition-all shadow-md flex items-center justify-center gap-2 group cursor-pointer"
+                    >
+                      <span>Check Price on {product.merchant.name.split(' ')[0]}</span>
+                      <ExternalLink className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                    </button>
+                  ) : (
+                    <div className="flex-1 sm:flex-initial py-3 px-6 bg-slate-200 text-slate-600 font-bold text-xs rounded-xl text-center">
+                      India Market Offer Only
+                    </div>
+                  )}
 
-                <button
-                  onClick={() => {
-                    if (inCompare) {
-                      removeFromCompare(product.id);
-                    } else {
-                      addToCompare(product.id);
-                    }
-                  }}
-                  className={`p-3 rounded-xl border text-xs font-semibold transition-colors flex items-center gap-1.5 ${
-                    inCompare
-                      ? 'bg-blue-50 border-blue-300 text-blue-700'
-                      : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50'
-                  }`}
-                  title={inCompare ? 'Remove from compare' : 'Compare with other products'}
-                >
-                  <Scale className="w-4 h-4 text-blue-600" />
-                  <span className="hidden sm:inline">{inCompare ? 'In Compare' : 'Compare'}</span>
-                </button>
+                  <button
+                    onClick={() => {
+                      if (inCompare) {
+                        removeFromCompare(product.id);
+                      } else {
+                        addToCompare(product.id);
+                      }
+                    }}
+                    className={`p-3 rounded-xl border text-xs font-semibold transition-colors flex items-center gap-1.5 cursor-pointer ${
+                      inCompare
+                        ? 'bg-blue-50 border-blue-300 text-blue-700'
+                        : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50'
+                    }`}
+                    title={inCompare ? 'Remove from compare' : 'Compare with other products'}
+                  >
+                    <Scale className="w-4 h-4 text-blue-600" />
+                    <span className="hidden sm:inline">{inCompare ? 'In Compare' : 'Compare'}</span>
+                  </button>
+                </div>
               </div>
             </div>
 

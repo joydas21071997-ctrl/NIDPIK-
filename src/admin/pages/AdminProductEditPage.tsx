@@ -152,7 +152,7 @@ export const AdminProductEditPage: React.FC<Props> = ({ productId }) => {
         lastUpdated: new Date().toISOString().split('T')[0]
       };
 
-      let result;
+      let result: any;
       const targetId = isNew ? (formData.slug || 'prod_' + Date.now()) : productId!;
 
       // 1. Direct Cloud Firestore write

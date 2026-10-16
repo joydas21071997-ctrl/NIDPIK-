@@ -8,7 +8,7 @@ interface ComparisonTableProps {
 }
 
 export const ComparisonTable: React.FC<ComparisonTableProps> = ({ products }) => {
-  const { navigate, triggerAffiliateClick } = useApp();
+  const { navigate, triggerAffiliateClick, formatPrice } = useApp();
 
   if (!products || products.length === 0) return null;
 
@@ -51,7 +51,7 @@ export const ComparisonTable: React.FC<ComparisonTableProps> = ({ products }) =>
                       {p.name}
                     </h4>
                     <div className="text-sm font-bold text-slate-900 mt-1 tabular-nums">
-                      ₹{p.price.toLocaleString('en-IN')}
+                      {formatPrice(p.price)}
                     </div>
                     <button
                       onClick={() => triggerAffiliateClick(p)}

@@ -111,7 +111,7 @@ export const ComparisonsPage: React.FC = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-6">
           {comparisons.map((comp) => {
             const compProducts = comp.productIds
               .map((id) => getProductBySlug(id))
@@ -121,10 +121,10 @@ export const ComparisonsPage: React.FC = () => {
               <div
                 key={comp.id}
                 onClick={() => navigate(`/compare/${comp.slug}`)}
-                className="nidpik-card rounded-3xl p-6 cursor-pointer group flex flex-col justify-between space-y-4"
+                className="nidpik-card rounded-xl sm:rounded-3xl p-3.5 sm:p-6 cursor-pointer group flex flex-col justify-between space-y-3 sm:space-y-4"
               >
                 <div>
-                  <div className="flex items-center gap-2 text-xs text-slate-500 mb-2 font-medium">
+                  <div className="flex items-center gap-2 text-[10px] sm:text-xs text-slate-500 mb-1.5 font-medium">
                     <span className="text-blue-600 font-semibold">{comp.category}</span>
                     <span aria-hidden="true">·</span>
                     <span>Updated {comp.updatedAt}</span>

@@ -25,7 +25,7 @@ export interface Product {
   price: number;
   oldPrice?: number;
   currency: string;
-  badge?: 'Best Value' | 'Budget Pick' | 'Editor\'s Choice' | 'Top Rated' | 'Best for Travel' | 'Best for Small Homes' | 'Student Pick';
+  badge?: 'Best Value' | 'Budget Pick' | "Editor's Choice" | 'Top Rated' | 'Best for Travel' | 'Best for Small Homes' | 'Student Pick' | string;
   image: string;
   shortDescription: string;
   quickVerdict: string;
@@ -38,7 +38,7 @@ export interface Product {
   merchant: Merchant;
   affiliateUrl: string;
   lastUpdated: string;
-  status: 'active' | 'archived';
+  status: 'active' | 'archived' | 'PUBLISHED' | 'DRAFT' | 'ARCHIVED' | string;
   ratingDisplay?: string; // e.g. "Editor Tested - 4.6/5 Value"
   inStock: boolean;
   budgetTier: number; // max budget threshold, e.g. 99, 199, 299, 499, 999, 1999, 2999, 4999

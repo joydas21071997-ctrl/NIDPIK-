@@ -9,7 +9,7 @@ import { db } from '../firebase/config';
 import { collection, addDoc } from 'firebase/firestore';
 
 export const Footer: React.FC = () => {
-  const { navigate } = useApp();
+  const { navigate, formatPrice, selectedCountry } = useApp();
   const [email, setEmail] = useState('');
   const [subscribed, setSubscribed] = useState(false);
 
@@ -35,6 +35,15 @@ export const Footer: React.FC = () => {
       setEmail('');
     }
   };
+  
+  const getCountryName = () => {
+    switch (selectedCountry) {
+      case 'US': return 'US';
+      case 'UK': return 'UK';
+      case 'CA': return 'Canada';
+      default: return 'India';
+    }
+  };
 
   return (
     <footer className="bg-slate-900 text-slate-300 pt-16 pb-12 border-t border-slate-800">
@@ -47,20 +56,20 @@ export const Footer: React.FC = () => {
               <Logo size="md" showTagline={true} />
             </div>
             <p className="text-slate-400 text-sm leading-relaxed max-w-lg">
-              <strong className="text-white font-medium">NIDPIK</strong> (Need + Pick) is an independent product discovery and buying guide platform for Indian consumers. We help you cut through marketing hype to find what is genuinely worth buying for your actual everyday need.
+              <strong className="text-white font-medium">NIDPIK</strong> (Need + Pick) is an independent product discovery and buying guide platform for shoppers worldwide. We help you cut through marketing hype to find what is genuinely worth buying in {getCountryName()}.
             </p>
-            <div className="flex items-center gap-4 text-xs text-slate-400 font-medium">
+            <div className="flex items-center gap-4 text-xs text-slate-400 font-medium flex-wrap">
               <span className="flex items-center gap-1.5 text-slate-300">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
                 Zero Fabricated Reviews
               </span>
               <span className="flex items-center gap-1.5 text-slate-300">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                India-First Pricing (INR ₹)
+                Regional Pricing
               </span>
               <span className="flex items-center gap-1.5 text-slate-300">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                Budgets Starting from ₹99
+                Verified Buying Guides
               </span>
             </div>
           </div>
@@ -71,7 +80,7 @@ export const Footer: React.FC = () => {
               Get Better Product Picks
             </h3>
             <p className="text-slate-400 text-xs mb-4">
-              Weekly handpicked value finds, practical buying guides, and honest comparisons for Indian everyday life. No spam.
+              Weekly handpicked value finds, practical buying guides, and honest comparisons for {getCountryName()} everyday life. No spam.
             </p>
             {subscribed ? (
               <div className="bg-emerald-950/80 border border-emerald-500/40 text-emerald-300 text-xs px-4 py-3 rounded-lg flex items-center gap-2">
@@ -140,7 +149,7 @@ export const Footer: React.FC = () => {
           {/* Col 2: Best Under ₹ */}
           <div>
             <h4 className="text-white font-semibold uppercase tracking-wider text-[11px] mb-3">
-              Best Under ₹
+              Budget Discovery
             </h4>
             <ul className="space-y-2">
               {budgetTiers.map((tier) => (
@@ -153,7 +162,7 @@ export const Footer: React.FC = () => {
                     }}
                     className="hover:text-blue-400 transition-colors flex items-center justify-between"
                   >
-                    <span>{tier.title}</span>
+                    <span>{`Budget Under ${formatPrice(tier.amount)}`}</span>
                   </a>
                 </li>
               ))}
@@ -354,7 +363,7 @@ export const Footer: React.FC = () => {
           </div>
           <div className="flex flex-col sm:flex-row items-center justify-between pt-4 text-slate-500 text-[11px] gap-2">
             <div>
-              © 2026 NIDPIK. All rights reserved. Made for Indian shoppers.
+                © 2026 NIDPIK. All rights reserved.
             </div>
             <div className="flex items-center gap-4">
               <span className="font-medium text-slate-400">Need → Discover → Compare → Pick Right</span>

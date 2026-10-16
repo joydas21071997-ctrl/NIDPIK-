@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { formatPrice as formatPriceUtil } from '../utils/currency';
 import {
   Product,
   Category,
@@ -42,10 +43,21 @@ export interface AdminUser {
   lastLogin?: string;
 }
 
+export const COUNTRIES = [
+  { code: 'IN', name: 'India', currencySymbol: '₹', currencyCode: 'INR', flag: '🇮🇳' },
+  { code: 'US', name: 'United States', currencySymbol: '$', currencyCode: 'USD', flag: '🇺🇸' },
+  { code: 'UK', name: 'United Kingdom', currencySymbol: '£', currencyCode: 'GBP', flag: '🇬🇧' },
+  { code: 'CA', name: 'Canada', currencySymbol: 'C$', currencyCode: 'CAD', flag: '🇨🇦' },
+];
+
 interface AppContextType {
   // Navigation & Router
   currentPath: string;
   navigate: (path: string, options?: { replace?: boolean; scroll?: boolean }) => void;
+
+  // Market / Country Selector
+  selectedCountry: 'IN' | 'US' | 'UK' | 'CA';
+  setSelectedCountry: (country: 'IN' | 'US' | 'UK' | 'CA') => void;
 
   // Search Modal
   searchModalOpen: boolean;
@@ -107,6 +119,10 @@ interface AppContextType {
   getBudgetTierBySlug: (slug: string) => BudgetTier | undefined;
   getAuthorById: (id: string) => Author | undefined;
 
+  // Currency & Localization
+  formatPrice: (price: number) => string;
+  getAffiliateUrl: (product: Product) => string;
+
   // Admin Auth & RBAC
   adminUser: AdminUser | null;
   adminToken: string | null;
@@ -124,6 +140,46 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   });
 
   const [searchModalOpen, setSearchModalOpen] = useState(false);
+
+  const [selectedCountry, setSelectedCountry] = useState<'IN' | 'US' | 'UK' | 'CA'>(() => {
+    try {
+      const stored = localStorage.getItem('nidpik_selected_country');
+      if (stored === 'IN' || stored === 'US' || stored === 'UK' || stored === 'CA') {
+        return stored;
+      }
+    } catch {}
+    return 'IN';
+  });
+
+
+
+// ... (in AppProvider)
+
+  const formatPrice = (price: number) => {
+    return formatPriceUtil(price, selectedCountry);
+  };
+
+
+
+  const getAffiliateUrl = (product: Product) => {
+    // Basic logic: if affiliate URL contains 'amazon.in', replace with appropriate market if supported
+    // Real-world: This should be product-specific per market
+    if (product.affiliateUrl.includes('amazon.in')) {
+      if (selectedCountry === 'US') return product.affiliateUrl.replace('amazon.in', 'amazon.com');
+      if (selectedCountry === 'UK') return product.affiliateUrl.replace('amazon.in', 'amazon.co.uk');
+      if (selectedCountry === 'CA') return product.affiliateUrl.replace('amazon.in', 'amazon.ca');
+    }
+    return product.affiliateUrl;
+  };
+
+
+
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('nidpik_selected_country', selectedCountry);
+    } catch {}
+  }, [selectedCountry]);
   const [aiAdvisorOpen, setAiAdvisorOpen] = useState(false);
   const [initialAiPrompt, setInitialAiPrompt] = useState('');
 
@@ -516,6 +572,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       value={{
         currentPath,
         navigate,
+        selectedCountry,
+        setSelectedCountry,
         searchModalOpen,
         setSearchModalOpen,
         aiAdvisorOpen,
@@ -561,6 +619,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         getBudgetTierByAmount,
         getBudgetTierBySlug,
         getAuthorById,
+
+        // Currency & Localization
+        formatPrice,
+        getAffiliateUrl,
 
         // Admin Auth & RBAC
         adminUser,

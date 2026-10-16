@@ -22,14 +22,14 @@ export const ReviewsPage: React.FC = () => {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
         {reviews.map((rev) => {
           const product = getProductBySlug(rev.productId);
           return (
             <div
               key={rev.id}
               onClick={() => navigate(`/reviews/${rev.slug}`)}
-              className="nidpik-card rounded-2xl p-6 cursor-pointer group flex flex-col justify-between space-y-4"
+              className="nidpik-card rounded-xl sm:rounded-2xl p-3.5 sm:p-6 cursor-pointer group flex flex-col justify-between space-y-3 sm:space-y-4"
             >
               <div>
                 <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded">
@@ -102,7 +102,7 @@ export const ReviewDetailPage: React.FC<ReviewDetailPageProps> = ({ slug }) => {
   const author = getAuthorById(review.authorId);
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-10 text-left">
+    <div className="max-w-4xl mx-auto px-3 sm:px-6 lg:px-8 py-5 sm:py-8 space-y-6 sm:space-y-10 overflow-hidden text-left">
       <Breadcrumbs
         items={[
           { label: 'Reviews', href: '/reviews' },

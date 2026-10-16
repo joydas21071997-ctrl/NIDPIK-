@@ -21,12 +21,24 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     addToCompare,
     removeFromCompare,
     isProductInCompare,
-    triggerAffiliateClick
+    triggerAffiliateClick,
+    selectedCountry,
+    formatPrice
   } = useApp();
 
   const [imgError, setImgError] = useState(false);
   const saved = isProductSaved(product.id);
   const inCompare = isProductInCompare(product.id);
+
+  const isIndia = selectedCountry === 'IN';
+  const currencySymbol =
+    selectedCountry === 'US'
+      ? '$'
+      : selectedCountry === 'UK'
+      ? '£'
+      : selectedCountry === 'CA'
+      ? 'C$'
+      : '₹';
 
   const discountPercent = product.oldPrice
     ? Math.round(((product.oldPrice - product.price) / product.oldPrice) * 100)
@@ -114,40 +126,39 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         </div>
 
         {/* PRICING & ACTIONS */}
-        <div className="pt-2 border-t border-slate-100 space-y-2">
+        <div className="pt-2 border-t border-slate-100 space-y-1.5 sm:space-y-2">
           {/* Price row */}
-          <div className="flex items-baseline justify-between gap-1">
-            <div className="flex items-baseline gap-1.5 flex-wrap">
-              <span className="text-sm sm:text-base md:text-lg font-black text-slate-900 tabular-nums">
-                ₹{product.price.toLocaleString('en-IN')}
-              </span>
+          <div className="flex items-baseline justify-between gap-1 flex-wrap">
+            <span className="text-xs sm:text-base font-black text-slate-900 tabular-nums">
+              {formatPrice(product.price)}
               {product.oldPrice && (
-                <span className="text-[10px] sm:text-xs text-slate-400 line-through tabular-nums">
-                  ₹{product.oldPrice.toLocaleString('en-IN')}
+                <span className="ml-1.5 text-[9px] sm:text-xs text-slate-400 line-through tabular-nums font-normal">
+                  {formatPrice(product.oldPrice)}
                 </span>
               )}
-            </div>
+            </span>
 
             {discountPercent && discountPercent > 0 && (
-              <span className="text-[10px] sm:text-[11px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.2 rounded shrink-0">
+              <span className="text-[8px] sm:text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1 sm:px-1.5 py-0.2 rounded shrink-0">
                 {discountPercent}% OFF
               </span>
             )}
           </div>
 
-          {/* Button Actions Row */}
-          <div className="flex items-center gap-1.5 sm:gap-2">
-            {/* Affiliate CTA */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                triggerAffiliateClick(product);
-              }}
-              className="flex-1 py-1.5 sm:py-2 px-2 bg-slate-50 hover:bg-blue-50 text-slate-800 hover:text-blue-600 font-semibold text-[11px] sm:text-xs rounded-lg sm:rounded-xl border border-slate-200 hover:border-blue-300 transition-all flex items-center justify-center gap-1 shadow-2xs group/btn truncate"
-            >
-              <span className="truncate">View on {product.merchant.name.split(' ')[0]}</span>
-              <ExternalLink className="w-3 h-3 text-slate-400 group-hover/btn:text-blue-600 shrink-0" />
-            </button>
+            {/* Button Actions Row */}
+            <div className="flex items-center gap-1 sm:gap-2 min-w-0">
+              {/* Affiliate CTA */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  triggerAffiliateClick(product);
+                }}
+                className="flex-1 min-w-0 py-1.5 sm:py-2 px-1.5 sm:px-2 bg-slate-50 hover:bg-blue-50 text-slate-800 hover:text-blue-600 font-semibold text-[10px] sm:text-xs rounded-lg sm:rounded-xl border border-slate-200 hover:border-blue-300 transition-all flex items-center justify-center gap-1 shadow-2xs group/btn"
+                title={`View on ${product.merchant.name}`}
+              >
+                <span className="truncate">View on {product.merchant.name.split(' ')[0]}</span>
+                <ExternalLink className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-slate-400 group-hover/btn:text-blue-600 shrink-0" />
+              </button>
 
             {/* Quick Compare Button */}
             <button

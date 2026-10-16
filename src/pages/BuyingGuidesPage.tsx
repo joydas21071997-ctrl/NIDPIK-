@@ -23,33 +23,33 @@ export const BuyingGuidesPage: React.FC = () => {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
         {buyingGuides.map((guide) => (
           <div
             key={guide.id}
             onClick={() => navigate(`/buying-guides/${guide.slug}`)}
-            className="nidpik-card rounded-2xl p-6 cursor-pointer group flex flex-col justify-between space-y-4"
+            className="nidpik-card rounded-xl sm:rounded-2xl p-3.5 sm:p-6 cursor-pointer group flex flex-col justify-between space-y-2.5 sm:space-y-4"
           >
             <div>
-              <div className="flex items-center gap-2 text-xs text-slate-500 mb-2 font-medium">
+              <div className="flex items-center gap-2 text-[10px] sm:text-xs text-slate-500 mb-1.5 font-medium">
                 <span className="text-blue-600 font-semibold">{guide.category}</span>
                 <span aria-hidden="true">·</span>
                 <span>{guide.readingTime}</span>
               </div>
-              <h3 className="text-base font-bold text-slate-900 group-hover:text-blue-600 transition-colors line-clamp-2 leading-snug">
+              <h3 className="text-xs sm:text-base font-bold text-slate-900 group-hover:text-blue-600 transition-colors line-clamp-2 leading-snug">
                 {guide.title}
               </h3>
-              <p className="text-xs text-slate-600 mt-2 line-clamp-2 leading-relaxed">
+              <p className="text-[11px] sm:text-xs text-slate-600 mt-1 line-clamp-2 leading-relaxed">
                 {guide.subtitle}
               </p>
             </div>
 
-            <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 text-xs">
-              <span className="font-semibold text-slate-800 block mb-1">Quick Answer:</span>
-              <p className="text-[11px] text-slate-600 line-clamp-2">{guide.quickAnswer}</p>
+            <div className="p-2.5 sm:p-3 bg-slate-50 rounded-xl border border-slate-100 text-xs">
+              <span className="font-semibold text-slate-800 block mb-0.5 text-[11px]">Quick Answer:</span>
+              <p className="text-[10px] sm:text-[11px] text-slate-600 line-clamp-2">{guide.quickAnswer}</p>
             </div>
 
-            <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-blue-600 group-hover:translate-x-0.5 transition-transform">
+            <div className="pt-2 sm:pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-blue-600 group-hover:translate-x-0.5 transition-transform">
               <span>Read Full Guide</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </div>
@@ -90,7 +90,7 @@ export const BuyingGuideDetailPage: React.FC<BuyingGuideDetailPageProps> = ({ sl
     .filter(Boolean);
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-10 text-left">
+    <div className="max-w-4xl mx-auto px-3 sm:px-6 lg:px-8 py-5 sm:py-8 space-y-6 sm:space-y-10 overflow-hidden text-left">
       {/* BREADCRUMBS */}
       <Breadcrumbs
         items={[
