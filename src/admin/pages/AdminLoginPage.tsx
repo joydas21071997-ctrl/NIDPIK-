@@ -113,43 +113,6 @@ export const AdminLoginPage: React.FC = () => {
           </button>
         </form>
 
-        {/* DEMO / QUICK FILL CREDENTIALS HINT */}
-        <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-2 text-xs">
-          <div className="flex items-center gap-1.5 font-bold text-slate-700">
-            <ShieldCheck className="w-4 h-4 text-blue-600" />
-            <span>Pre-Configured Demo Accounts:</span>
-          </div>
-          <div className="grid grid-cols-3 gap-1.5 pt-1">
-            <button
-              type="button"
-              onClick={() => fillCredentials('admin@nidpik.in', 'Nidpik@Secure#2026')}
-              className="p-1.5 bg-white border border-slate-200 hover:border-blue-400 rounded-lg text-left transition-colors cursor-pointer"
-            >
-              <span className="block font-bold text-slate-900 text-[11px]">Owner</span>
-              <span className="block font-mono text-[9px] text-slate-500 truncate">admin@nidpik.in</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => fillCredentials('manager@nidpik.in', 'Nidpik@Manager#2026')}
-              className="p-1.5 bg-white border border-slate-200 hover:border-blue-400 rounded-lg text-left transition-colors cursor-pointer"
-            >
-              <span className="block font-bold text-slate-900 text-[11px]">Admin</span>
-              <span className="block font-mono text-[9px] text-slate-500 truncate">manager@nidpik.in</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => fillCredentials('editor@nidpik.in', 'Nidpik@Editor#2026')}
-              className="p-1.5 bg-white border border-slate-200 hover:border-blue-400 rounded-lg text-left transition-colors cursor-pointer"
-            >
-              <span className="block font-bold text-slate-900 text-[11px]">Editor</span>
-              <span className="block font-mono text-[9px] text-slate-500 truncate">editor@nidpik.in</span>
-            </button>
-          </div>
-          <p className="text-[10px] text-slate-500 pt-1">
-            🛡️ Secure breach-free password preset configured to prevent Google data breach warnings.
-          </p>
-        </div>
-
         {/* BACK TO SITE LINK */}
         <div className="text-center pt-2 border-t border-slate-100">
           <a
