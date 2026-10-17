@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { AdminLayout } from '../AdminLayout';
-import { useApp } from '../../context/AppContext';
+import { useApp, COUNTRIES } from '../../context/AppContext';
 import { api } from '../../services/api';
 import {
   Save,
@@ -12,7 +12,9 @@ import {
   CheckCircle,
   AlertCircle,
   Eye,
-  Sparkles
+  Sparkles,
+  Globe,
+  CheckCircle2
 } from 'lucide-react';
 import { saveProductToFirestore } from '../../services/firebaseSync';
 
@@ -54,7 +56,7 @@ export const AdminProductEditPage: React.FC<Props> = ({ productId }) => {
     pros: ['Affordable', 'Reliable performance'] as string[],
     cons: ['Basic packaging'] as string[],
     merchantId: 'amazon',
-    affiliateUrl: '',
+    affiliateUrls: { IN: '' } as Record<string, string>,
     affiliateNetwork: 'Amazon Associates',
     status: 'PUBLISHED' as 'DRAFT' | 'PUBLISHED' | 'ARCHIVED',
     problemTags: [] as string[],
@@ -71,6 +73,7 @@ export const AdminProductEditPage: React.FC<Props> = ({ productId }) => {
   const [newSpecKey, setNewSpecKey] = useState('');
   const [newSpecVal, setNewSpecVal] = useState('');
   const [newGalleryUrl, setNewGalleryUrl] = useState('');
+  const [newCountryCode, setNewCountryCode] = useState('');
 
   // Load product if editing
   useEffect(() => {
@@ -102,7 +105,9 @@ export const AdminProductEditPage: React.FC<Props> = ({ productId }) => {
               pros: p.pros || [],
               cons: p.cons || [],
               merchantId: p.merchant?.id || 'amazon',
-              affiliateUrl: p.affiliateUrl || '',
+              affiliateUrls: (p.affiliateUrls && Object.keys(p.affiliateUrls).length > 0)
+                ? p.affiliateUrls
+                : ((p as any).affiliateUrl ? { IN: (p as any).affiliateUrl } : { IN: '' }),
               affiliateNetwork: p.affiliateNetwork || 'Amazon Associates',
               status: p.status || 'PUBLISHED',
               problemTags: p.problemTags || [],
@@ -146,8 +151,10 @@ export const AdminProductEditPage: React.FC<Props> = ({ productId }) => {
         affiliateBaseUrl: ''
       };
 
+      const primaryUrl = formData.affiliateUrls.IN || Object.values(formData.affiliateUrls).find(Boolean) || '';
       const payload = {
         ...formData,
+        affiliateUrl: primaryUrl,
         merchant: selectedMerchant,
         lastUpdated: new Date().toISOString().split('T')[0]
       };
@@ -742,21 +749,140 @@ export const AdminProductEditPage: React.FC<Props> = ({ productId }) => {
               </div>
             </div>
 
-            <div>
-              <label className="text-xs font-bold text-slate-700 block mb-1">
-                Outbound Affiliate URL *
-              </label>
-              <input
-                type="url"
-                required
-                value={formData.affiliateUrl}
-                onChange={(e) => setFormData({ ...formData, affiliateUrl: e.target.value })}
-                placeholder="https://www.amazon.in/dp/...?tag=nidpik-21"
-                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono focus:bg-white focus:outline-none focus:border-blue-500"
-              />
-              <span className="text-[11px] text-slate-400 mt-1 block">
-                Clicks on product CTA buttons will transparently route through this link with affiliate tracking.
-              </span>
+            {/* Multi-Country Regional Affiliate Links */}
+            <div className="bg-slate-50/80 border border-slate-200 rounded-2xl p-4 sm:p-5 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200/80 pb-3">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                      <Globe className="w-4 h-4 text-blue-600" />
+                      Regional Affiliate Links (এক পোস্টে সব দেশের অ্যাফিলিয়েট লিংক) *
+                    </label>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-800">
+                      Multi-Country Store Mapping
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 mt-1">
+                    আলাদা আলাদা দেশের জন্য আলাদা আলাদা পোস্ট করার প্রয়োজন নেই! এক পোস্টের ভেতরেই প্রতিটি দেশের স্টোর লিঙ্ক সেট করা যাবে। ভিজিটররা যে দেশ সিলেক্ট করবে, &quot;Buy Now&quot; বাটনে ক্লিক করলে স্বয়ংক্রিয়ভাবে সেই দেশের স্টোর পেজ ওপেন হবে।
+                  </p>
+                </div>
+              </div>
+
+              {/* Supported Countries Inputs */}
+              <div className="space-y-3">
+                {COUNTRIES.map((country) => (
+                  <div key={country.code} className="bg-white p-3 rounded-xl border border-slate-200/90 shadow-2xs space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                        <span className="text-base">{country.flag}</span>
+                        <span>{country.name} ({country.code})</span>
+                        <span className="text-[10px] font-medium text-slate-400">· {country.currencySymbol} ({country.currencyCode})</span>
+                        {country.code === 'IN' && (
+                          <span className="text-[9px] font-bold bg-amber-50 text-amber-700 border border-amber-200 px-1.5 py-0.2 rounded">
+                            Primary / Required
+                          </span>
+                        )}
+                      </span>
+                      {formData.affiliateUrls[country.code] ? (
+                        <span className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> Link Ready
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-slate-400">Optional (falls back to primary)</span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="url"
+                        value={formData.affiliateUrls[country.code] || ''}
+                        onChange={(e) => {
+                          const updated = { ...formData.affiliateUrls, [country.code]: e.target.value };
+                          setFormData({ ...formData, affiliateUrls: updated });
+                        }}
+                        placeholder={`https://www.amazon.${country.code === 'IN' ? 'in' : country.code === 'UK' ? 'co.uk' : country.code === 'CA' ? 'ca' : 'com'}/dp/...?tag=nidpik-21`}
+                        className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono focus:bg-white focus:outline-none focus:border-blue-500"
+                      />
+                      {formData.affiliateUrls[country.code] && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updated = { ...formData.affiliateUrls };
+                            delete updated[country.code];
+                            setFormData({ ...formData, affiliateUrls: updated });
+                          }}
+                          className="px-2.5 py-1.5 text-slate-400 hover:text-rose-600 text-xs font-medium rounded-lg hover:bg-rose-50 transition-colors"
+                          title="Clear link"
+                        >
+                          Clear
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+
+                {/* Additional Custom Countries if defined */}
+                {Object.keys(formData.affiliateUrls)
+                  .filter((code) => !COUNTRIES.some((c) => c.code === code))
+                  .map((customCode) => (
+                    <div key={customCode} className="bg-white p-3 rounded-xl border border-slate-200/90 shadow-2xs space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                          <Globe className="w-3.5 h-3.5 text-blue-500" />
+                          <span>Custom Market: {customCode}</span>
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updated = { ...formData.affiliateUrls };
+                            delete updated[customCode];
+                            setFormData({ ...formData, affiliateUrls: updated });
+                          }}
+                          className="text-[11px] text-rose-500 hover:text-rose-700 font-medium hover:bg-rose-50 px-2 py-0.5 rounded transition-colors"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                      <input
+                        type="url"
+                        value={formData.affiliateUrls[customCode] || ''}
+                        onChange={(e) => {
+                          const updated = { ...formData.affiliateUrls, [customCode]: e.target.value };
+                          setFormData({ ...formData, affiliateUrls: updated });
+                        }}
+                        placeholder="https://..."
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono focus:bg-white focus:outline-none focus:border-blue-500"
+                      />
+                    </div>
+                  ))}
+              </div>
+
+              {/* Add Custom Market Row */}
+              <div className="pt-2 flex items-center gap-2">
+                <input
+                  type="text"
+                  maxLength={4}
+                  value={newCountryCode}
+                  onChange={(e) => setNewCountryCode(e.target.value.toUpperCase())}
+                  placeholder="e.g. AU, DE"
+                  className="w-28 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold uppercase focus:outline-none focus:border-blue-500"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const code = newCountryCode.trim().toUpperCase();
+                    if (code && !formData.affiliateUrls[code]) {
+                      setFormData({
+                        ...formData,
+                        affiliateUrls: { ...formData.affiliateUrls, [code]: '' }
+                      });
+                      setNewCountryCode('');
+                    }
+                  }}
+                  className="px-3.5 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-semibold rounded-lg transition-colors cursor-pointer"
+                >
+                  + Add Other Country Code
+                </button>
+              </div>
             </div>
 
             <div>

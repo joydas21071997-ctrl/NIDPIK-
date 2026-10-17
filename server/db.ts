@@ -528,7 +528,7 @@ function seedDatabaseIfEmpty() {
       JSON.stringify(p.pros || []),
       JSON.stringify(p.cons || []),
       JSON.stringify(p.merchant),
-      p.affiliateUrl,
+      p.affiliateUrl || p.affiliateUrls?.IN || (p.affiliateUrls ? Object.values(p.affiliateUrls)[0] : '') || '',
       'Amazon Associates',
       p.lastUpdated,
       p.ratingDisplay || 'Editor Tested: 4.8/5 Value',

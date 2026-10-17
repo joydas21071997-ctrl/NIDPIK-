@@ -6,6 +6,7 @@ import { SearchModal } from './components/SearchModal';
 import { CompareTray } from './components/CompareTray';
 import { AffiliateModal } from './components/AffiliateModal';
 import { AiAdvisorModal } from './components/AiAdvisorModal';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 import { HomePage } from './pages/HomePage';
 import { CategoryPage, CategoriesIndexPage } from './pages/CategoryPage';
@@ -267,9 +268,11 @@ const AppShell: React.FC = () => {
 
 export function App() {
   return (
-    <AppProvider>
-      <AppShell />
-    </AppProvider>
+    <ErrorBoundary>
+      <AppProvider>
+        <AppShell />
+      </AppProvider>
+    </ErrorBoundary>
   );
 }
 

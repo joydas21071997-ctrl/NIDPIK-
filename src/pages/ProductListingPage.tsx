@@ -8,7 +8,24 @@ import { Breadcrumbs } from '../components/Breadcrumbs';
 import { Filter, SlidersHorizontal, ArrowUpDown, X } from 'lucide-react';
 
 export const ProductListingPage: React.FC = () => {
-  const { currentPath } = useApp();
+  const { currentPath, selectedCountry, formatPrice } = useApp();
+
+  const countryName =
+    selectedCountry === 'US'
+      ? 'US'
+      : selectedCountry === 'UK'
+      ? 'UK'
+      : selectedCountry === 'CA'
+      ? 'Canada'
+      : 'India';
+
+  const localizedPriceRanges = useMemo(() => {
+    return priceRanges.map((range) => {
+      if (range.min === 0) return { ...range, label: 'All Budgets' };
+      if (range.max === Infinity) return { ...range, label: `${formatPrice(range.min)}+` };
+      return { ...range, label: `${formatPrice(range.min)} – ${formatPrice(range.max)}` };
+    });
+  }, [formatPrice]);
 
   // Parse any query params if present, e.g. /products?category=electronics
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -82,7 +99,7 @@ export const ProductListingPage: React.FC = () => {
             Discover Products
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Browse {products.length} editorially tested picks across Indian market categories starting from ₹99.
+            Browse {products.length} editorially tested picks across {countryName} market categories starting from {formatPrice(99)}.
           </p>
         </div>
 
@@ -153,11 +170,11 @@ export const ProductListingPage: React.FC = () => {
             />
           </div>
 
-          {/* Price Range Filter (from ₹99!) */}
+          {/* Price Range Filter */}
           <div>
-            <label className="text-xs font-semibold text-slate-700 block mb-2">Price Budget (INR ₹)</label>
+            <label className="text-xs font-semibold text-slate-700 block mb-2">Price Budget</label>
             <div className="space-y-1">
-              {priceRanges.map((range, idx) => (
+              {localizedPriceRanges.map((range, idx) => (
                 <button
                   key={idx}
                   onClick={() => setSelectedPriceRangeIndex(idx)}

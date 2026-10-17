@@ -11,7 +11,7 @@ interface BudgetListingPageProps {
 }
 
 export const BudgetListingPage: React.FC<BudgetListingPageProps> = ({ slug }) => {
-  const { navigate } = useApp();
+  const { navigate, formatPrice, selectedCountry } = useApp();
   const tier = getBudgetTierBySlug(slug) || budgetTiers[0];
 
   // Get products strictly <= tier.amount
@@ -20,13 +20,22 @@ export const BudgetListingPage: React.FC<BudgetListingPageProps> = ({ slug }) =>
   // Related buying guides within this price scope
   const relatedGuides = buyingGuides.slice(0, 2);
 
+  const getCountryName = () => {
+    switch (selectedCountry) {
+      case 'US': return 'US';
+      case 'UK': return 'UK';
+      case 'CA': return 'Canada';
+      default: return 'India';
+    }
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-12">
       {/* BREADCRUMBS */}
       <Breadcrumbs
         items={[
           { label: 'Budget Discovery', href: '/best-under-99' },
-          { label: tier.title }
+          { label: tier.title.replace('Best Under ₹', 'Under ') }
         ]}
       />
 
@@ -34,15 +43,15 @@ export const BudgetListingPage: React.FC<BudgetListingPageProps> = ({ slug }) =>
       <div className="bg-gradient-to-br from-blue-50/80 via-white to-blue-50/40 rounded-3xl p-6 sm:p-8 border border-blue-100 shadow-xs space-y-4">
         <div className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-700 bg-blue-100 px-3 py-1 rounded-md">
           <Tag className="w-3.5 h-3.5" />
-          Budget Discovery: Starts from ₹99
+          Budget Discovery: Starts from {formatPrice(99)}
         </div>
 
         <h1 className="text-2xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
-          {tier.title} in India
+          {tier.title.replace('Best Under ₹', 'Best Under ')}
         </h1>
 
         <p className="text-slate-600 text-sm sm:text-base max-w-3xl leading-relaxed">
-          {tier.description} We handpick products that offer true durability, avoiding disposable plastic novelties so every rupee spent provides lasting utility.
+          {tier.description} We handpick products that offer true durability, avoiding disposable plastic novelties so every {selectedCountry === 'IN' ? 'rupee' : 'dollar/pound'} spent provides lasting utility.
         </p>
 
         {/* QUICK SWITCHER FOR ALL BUDGET TIERS */}
@@ -59,7 +68,7 @@ export const BudgetListingPage: React.FC<BudgetListingPageProps> = ({ slug }) =>
                     : 'bg-white text-slate-700 border border-slate-200 hover:border-blue-400'
                 }`}
               >
-                ₹{b.amount}
+                {formatPrice(b.amount)}
               </button>
             ))}
           </div>
@@ -74,13 +83,14 @@ export const BudgetListingPage: React.FC<BudgetListingPageProps> = ({ slug }) =>
         <div className="flex items-baseline justify-between mb-6">
           <div>
             <h2 className="text-xl font-bold text-slate-900">
-              Tested Picks Priced Under ₹{tier.amount.toLocaleString('en-IN')}
+              Tested Picks Priced Under {formatPrice(tier.amount)}
             </h2>
             <p className="text-xs text-slate-500 mt-0.5">
               Showing {tierProducts.length} verified products within this budget ceiling
             </p>
           </div>
         </div>
+
 
         {tierProducts.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4 md:gap-6">
@@ -91,27 +101,27 @@ export const BudgetListingPage: React.FC<BudgetListingPageProps> = ({ slug }) =>
         ) : (
           <div className="bg-white rounded-2xl p-10 text-center text-slate-500 border border-slate-200">
             <p className="text-sm font-semibold">No direct products strictly under this ceiling in current demo filter.</p>
-            <p className="text-xs text-slate-400 mt-1">Check adjacent budget ranges starting from ₹99.</p>
+            <p className="text-xs text-slate-400 mt-1">Check adjacent budget ranges starting from {formatPrice(99)}.</p>
           </div>
         )}
       </div>
 
-      {/* WHY THIS BUDGET MATTERS IN INDIA (EDITORIAL CONTEXT) */}
+      {/* EDITORIAL CONTEXT & BUYING GUIDANCE */}
       <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-xs space-y-4">
         <h3 className="text-lg font-bold text-slate-900">
-          How to Pick the Best Value Under ₹{tier.amount}
+          How to Pick the Best Value Under {formatPrice(tier.amount)}
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-xs text-slate-600 leading-relaxed">
           <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-1.5">
             <span className="font-bold text-slate-900 block">1. Material Quality First</span>
             <p>
-              Under ₹{tier.amount}, avoid fragile plastic mechanisms with moving joints. Look for dense microfibers, 304 food-grade stainless steel, and ballistic nylon weaves.
+              Under {formatPrice(tier.amount)}, avoid fragile plastic mechanisms with moving joints. Look for dense microfibers, 304 food-grade stainless steel, and ballistic nylon weaves.
             </p>
           </div>
           <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-1.5">
             <span className="font-bold text-slate-900 block">2. Brand Warranty Verification</span>
             <p>
-              Prefer Indian brands (Milton, Pigeon, Portronics, boAt) with authorized service centers rather than anonymous unbranded importers.
+              Prefer verified brands with authorized service centers and responsive customer support rather than anonymous unbranded importers.
             </p>
           </div>
           <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-1.5">

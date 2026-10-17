@@ -9,7 +9,7 @@ import { db } from '../firebase/config';
 import { collection, addDoc } from 'firebase/firestore';
 
 export const Footer: React.FC = () => {
-  const { navigate, formatPrice, selectedCountry } = useApp();
+  const { navigate, formatPrice, selectedCountry, currentRegion } = useApp();
   const [email, setEmail] = useState('');
   const [subscribed, setSubscribed] = useState(false);
 
@@ -35,15 +35,6 @@ export const Footer: React.FC = () => {
       setEmail('');
     }
   };
-  
-  const getCountryName = () => {
-    switch (selectedCountry) {
-      case 'US': return 'US';
-      case 'UK': return 'UK';
-      case 'CA': return 'Canada';
-      default: return 'India';
-    }
-  };
 
   return (
     <footer className="bg-slate-900 text-slate-300 pt-16 pb-12 border-t border-slate-800">
@@ -56,21 +47,15 @@ export const Footer: React.FC = () => {
               <Logo size="md" showTagline={true} />
             </div>
             <p className="text-slate-400 text-sm leading-relaxed max-w-lg">
-              <strong className="text-white font-medium">NIDPIK</strong> (Need + Pick) is an independent product discovery and buying guide platform for shoppers worldwide. We help you cut through marketing hype to find what is genuinely worth buying in {getCountryName()}.
+              <strong className="text-white font-medium">NIDPIK</strong> (Need + Pick) is an independent product discovery and buying guide platform for {currentRegion.shopperAudience}. We help you cut through marketing hype to find what is genuinely worth buying in {currentRegion.name} {currentRegion.flag}.
             </p>
             <div className="flex items-center gap-4 text-xs text-slate-400 font-medium flex-wrap">
-              <span className="flex items-center gap-1.5 text-slate-300">
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                Zero Fabricated Reviews
-              </span>
-              <span className="flex items-center gap-1.5 text-slate-300">
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                Regional Pricing
-              </span>
-              <span className="flex items-center gap-1.5 text-slate-300">
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                Verified Buying Guides
-              </span>
+              {currentRegion.trustBadges.map((badge, idx) => (
+                <span key={idx} className="flex items-center gap-1.5 text-slate-300" title={badge.subtitle}>
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                  {badge.title}
+                </span>
+              ))}
             </div>
           </div>
 
@@ -80,7 +65,7 @@ export const Footer: React.FC = () => {
               Get Better Product Picks
             </h3>
             <p className="text-slate-400 text-xs mb-4">
-              Weekly handpicked value finds, practical buying guides, and honest comparisons for {getCountryName()} everyday life. No spam.
+              {currentRegion.newsletterSubtitle} No spam.
             </p>
             {subscribed ? (
               <div className="bg-emerald-950/80 border border-emerald-500/40 text-emerald-300 text-xs px-4 py-3 rounded-lg flex items-center gap-2">
@@ -358,7 +343,7 @@ export const Footer: React.FC = () => {
           <div className="flex items-start gap-2 bg-slate-800/40 p-3.5 rounded-xl border border-slate-700/50">
             <ShieldCheck className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
             <div>
-              <strong className="text-slate-200">Affiliate Disclosure:</strong> As an Amazon Associate, NIDPIK earns from qualifying purchases. If you purchase through merchant links on NIDPIK, we may earn an affiliate commission at zero additional cost to you. NIDPIK does not sell products directly. Product prices, discounts, and availability are subject to merchant updates on Amazon India, Flipkart, and partner websites.
+              <strong className="text-slate-200">Affiliate Disclosure:</strong> As an Amazon Associate and verified partner, NIDPIK earns from qualifying purchases. If you purchase through merchant links on NIDPIK, we may earn an affiliate commission at zero additional cost to you. NIDPIK does not sell products directly. {currentRegion.disclosureText}
             </div>
           </div>
           <div className="flex flex-col sm:flex-row items-center justify-between pt-4 text-slate-500 text-[11px] gap-2">
@@ -366,7 +351,10 @@ export const Footer: React.FC = () => {
                 © 2026 NIDPIK. All rights reserved.
             </div>
             <div className="flex items-center gap-4">
-              <span className="font-medium text-slate-400">Need → Discover → Compare → Pick Right</span>
+              <span className="font-medium text-slate-400 flex items-center gap-1.5">
+                <span>{currentRegion.flag}</span>
+                <span>Need → Discover → Compare → Pick Right</span>
+              </span>
               <span className="text-slate-600">·</span>
               <a
                 href="/admin"

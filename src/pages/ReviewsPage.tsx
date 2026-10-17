@@ -7,7 +7,7 @@ import { ProductCard } from '../components/ProductCard';
 import { FileText, Check, X, ArrowRight, ExternalLink, Sparkles, ShieldCheck } from 'lucide-react';
 
 export const ReviewsPage: React.FC = () => {
-  const { navigate } = useApp();
+  const { navigate, formatPrice } = useApp();
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
@@ -18,7 +18,7 @@ export const ReviewsPage: React.FC = () => {
           Editorial Product Reviews
         </h1>
         <p className="text-slate-600 text-sm max-w-2xl">
-          Independent hands-on assessments. We buy or lab-test products to see how they perform in real Indian daily usage before recommending them.
+          Independent hands-on assessments. We buy or lab-test products to see how they perform in real daily usage before recommending them.
         </p>
       </div>
 
@@ -57,7 +57,7 @@ export const ReviewsPage: React.FC = () => {
                       {product.name}
                     </span>
                     <span className="text-xs font-bold text-slate-700 tabular-nums">
-                      ₹{product.price.toLocaleString('en-IN')}
+                      {formatPrice(product.price)}
                     </span>
                   </div>
                 </div>
@@ -80,7 +80,7 @@ interface ReviewDetailPageProps {
 }
 
 export const ReviewDetailPage: React.FC<ReviewDetailPageProps> = ({ slug }) => {
-  const { navigate, triggerAffiliateClick } = useApp();
+  const { navigate, triggerAffiliateClick, formatPrice } = useApp();
   const review = getReviewBySlug(slug);
 
   if (!review) {
@@ -144,10 +144,10 @@ export const ReviewDetailPage: React.FC<ReviewDetailPageProps> = ({ slug }) => {
               <span className="text-xs font-bold text-blue-600">{product.brand}</span>
               <h3 className="text-base font-bold text-slate-900 leading-snug">{product.name}</h3>
               <div className="text-sm font-bold text-slate-900 tabular-nums mt-0.5">
-                ₹{product.price.toLocaleString('en-IN')}{' '}
+                {formatPrice(product.price)}{' '}
                 {product.oldPrice && (
                   <span className="text-xs text-slate-400 font-normal line-through">
-                    ₹{product.oldPrice.toLocaleString('en-IN')}
+                    {formatPrice(product.oldPrice)}
                   </span>
                 )}
               </div>

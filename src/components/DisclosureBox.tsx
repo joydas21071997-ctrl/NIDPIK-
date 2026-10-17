@@ -35,7 +35,7 @@ export const DisclosureBox: React.FC<DisclosureBoxProps> = ({ compact = false })
       <ShieldCheck className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
       <div>
         <span className="font-semibold text-slate-800">NIDPIK Editorial &amp; Affiliate Disclosure: </span>
-        All products featured are selected by our independent editorial team based on real-world Indian conditions. When you purchase through merchant links on our site, we may earn an affiliate commission at no extra cost to you. We never accept compensation in exchange for positive product ratings.{' '}
+        All products featured are selected by our independent editorial team based on rigorous real-world testing. When you purchase through merchant links on our site, we may earn an affiliate commission at no extra cost to you. We never accept compensation in exchange for positive product ratings.{' '}
         <a
           href="/editorial-policy"
           onClick={(e) => {

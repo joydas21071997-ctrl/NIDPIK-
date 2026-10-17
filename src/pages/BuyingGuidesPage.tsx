@@ -19,7 +19,7 @@ export const BuyingGuidesPage: React.FC = () => {
           Comprehensive Buying Guides
         </h1>
         <p className="text-slate-600 text-sm max-w-2xl">
-          Detailed decision frameworks, feature checklists, and lab-tested recommendations written specifically for Indian consumer needs and budgets.
+          Detailed decision frameworks, feature checklists, and lab-tested recommendations written specifically for everyday consumer needs and value budgets.
         </p>
       </div>
 
@@ -149,7 +149,7 @@ export const BuyingGuideDetailPage: React.FC<BuyingGuideDetailPageProps> = ({ sl
             Top Recommendations
           </h2>
           <p className="text-xs text-slate-500 mt-0.5">
-            Based on our test criteria for Indian daily commuting and usage
+            Based on our test criteria for real-world daily commuting and usage
           </p>
         </div>
 

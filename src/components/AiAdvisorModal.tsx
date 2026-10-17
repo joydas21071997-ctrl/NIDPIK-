@@ -28,7 +28,8 @@ export const AiAdvisorModal: React.FC = () => {
     addToCompare,
     isProductInCompare,
     toggleSaveProduct,
-    isProductSaved
+    isProductSaved,
+    formatPrice
   } = useApp();
 
   const [query, setQuery] = useState('');
@@ -46,24 +47,24 @@ export const AiAdvisorModal: React.FC = () => {
 
   const [presets, setPresets] = useState<Array<{ id: string; label: string; query: string }>>([
     {
-      id: 'wfh-999',
-      label: 'WFH Desk Setup Under ₹999',
-      query: 'What are the most essential work from home desk items under ₹999?'
+      id: 'wfh-setup',
+      label: 'WFH Desk Setup Essentials',
+      query: 'What are the most essential work from home desk items that deliver high utility?'
     },
     {
-      id: 'kitchen-500',
-      label: 'Small Kitchen Essentials Under ₹500',
-      query: 'Useful daily problem-solving gadgets for a compact kitchen under ₹500'
+      id: 'kitchen-essentials',
+      label: 'Small Kitchen Essentials',
+      query: 'Useful daily problem-solving gadgets for a compact kitchen'
     },
     {
-      id: 'utility-99',
-      label: 'Practical Picks Under ₹99',
-      query: 'Best practical everyday utility products under ₹99 that are actually durable'
+      id: 'utility-budget',
+      label: 'Practical Everyday Picks',
+      query: 'Best practical everyday utility products that are actually durable'
     },
     {
       id: 'student-hostel',
       label: 'College & Hostel Must-Haves',
-      query: 'Top durable and budget-friendly products for college students living in a hostel'
+      query: 'Top durable and budget-friendly products for college students living in a dorm or apartment'
     }
   ]);
 

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, Mail, CheckCircle2, Sparkles, ShieldCheck } from 'lucide-react';
+import { useApp } from '../context/AppContext';
 import { api } from '../services/api';
 import { db } from '../firebase/config';
 import { collection, addDoc } from 'firebase/firestore';
@@ -10,6 +11,7 @@ interface SubscribeModalProps {
 }
 
 export const SubscribeModal: React.FC<SubscribeModalProps> = ({ isOpen, onClose }) => {
+  const { formatPrice } = useApp();
   const [email, setEmail] = useState('');
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [frequency, setFrequency] = useState<'weekly' | 'deals'>('weekly');
@@ -79,7 +81,7 @@ export const SubscribeModal: React.FC<SubscribeModalProps> = ({ isOpen, onClose 
           </div>
           <h3 className="text-xl font-black text-white">Subscribe for Smart Picks</h3>
           <p className="text-xs text-blue-100 mt-1 leading-relaxed">
-            Get weekly tested recommendations, price drop alerts, and value finds starting from ₹99.
+            Get weekly tested recommendations, price drop alerts, and value finds starting from {formatPrice(99)}.
           </p>
         </div>
 
@@ -149,7 +151,7 @@ export const SubscribeModal: React.FC<SubscribeModalProps> = ({ isOpen, onClose 
                     }`}
                   >
                     <span>Price Drops</span>
-                    <span className="block text-[10px] font-normal text-slate-500 mt-0.5">Under ₹99 & ₹499 deals</span>
+                    <span className="block text-[10px] font-normal text-slate-500 mt-0.5">Under {formatPrice(99)} & {formatPrice(499)} deals</span>
                   </button>
                 </div>
               </div>

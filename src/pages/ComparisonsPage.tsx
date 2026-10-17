@@ -7,7 +7,7 @@ import { ComparisonTable } from '../components/ComparisonTable';
 import { Scale, ArrowRight, Check, Trophy, ExternalLink, Sparkles } from 'lucide-react';
 
 export const ComparisonsPage: React.FC = () => {
-  const { navigate, compareProductIds } = useApp();
+  const { navigate, compareProductIds, formatPrice } = useApp();
 
   // Custom comparison selector state
   const [productAId, setProductAId] = useState<string>(products[0]?.id || '');
@@ -60,7 +60,7 @@ export const ComparisonsPage: React.FC = () => {
             >
               {products.map((p) => (
                 <option key={p.id} value={p.id}>
-                  {p.name} (₹{p.price})
+                  {p.name} ({formatPrice(p.price)})
                 </option>
               ))}
             </select>
@@ -81,7 +81,7 @@ export const ComparisonsPage: React.FC = () => {
             >
               {products.map((p) => (
                 <option key={p.id} value={p.id} disabled={p.id === productAId}>
-                  {p.name} (₹{p.price})
+                  {p.name} ({formatPrice(p.price)})
                 </option>
               ))}
             </select>
@@ -107,7 +107,7 @@ export const ComparisonsPage: React.FC = () => {
             Curated Head-to-Head Showdowns
           </h2>
           <p className="text-xs text-slate-500 mt-0.5">
-            Detailed editorial breakdowns of the most popular questions in the Indian market
+            Detailed editorial breakdowns of the most popular buyer comparisons
           </p>
         </div>
 
@@ -153,7 +153,7 @@ export const ComparisonsPage: React.FC = () => {
                               {p.name}
                             </span>
                             <span className="text-[11px] text-slate-500 font-bold tabular-nums">
-                              ₹{p.price}
+                              {formatPrice(p.price)}
                             </span>
                           </div>
                         </div>
@@ -186,7 +186,7 @@ interface ComparisonDetailPageProps {
 }
 
 export const ComparisonDetailPage: React.FC<ComparisonDetailPageProps> = ({ slug }) => {
-  const { navigate, triggerAffiliateClick } = useApp();
+  const { navigate, triggerAffiliateClick, formatPrice } = useApp();
 
   // Check if slug is standard curated comparison or dynamic "a-vs-b"
   let comparison = getComparisonBySlug(slug);
@@ -215,7 +215,7 @@ export const ComparisonDetailPage: React.FC<ComparisonDetailPageProps> = ({ slug
         comparisonPoints: [
           {
             feature: 'Pricing & Value',
-            description: `${pA.name} costs ₹${pA.price} compared to ${pB.name} at ₹${pB.price}.`
+            description: `${pA.name} costs ${formatPrice(pA.price)} compared to ${pB.name} at ${formatPrice(pB.price)}.`
           }
         ],
         authorId: 'rahul-sharma',

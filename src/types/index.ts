@@ -36,7 +36,8 @@ export interface Product {
   pros: string[];
   cons: string[];
   merchant: Merchant;
-  affiliateUrl: string;
+  affiliateUrl?: string; // backwards compatibility fallback
+  affiliateUrls?: Record<string, string>; // e.g., { IN: "...", US: "...", UK: "...", CA: "..." }
   lastUpdated: string;
   status: 'active' | 'archived' | 'PUBLISHED' | 'DRAFT' | 'ARCHIVED' | string;
   ratingDisplay?: string; // e.g. "Editor Tested - 4.6/5 Value"

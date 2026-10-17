@@ -53,10 +53,10 @@ export const ArticlesPage: React.FC = () => {
           <span>Consumer Advice &amp; Guides</span>
         </div>
         <h1 className="text-xl sm:text-3xl lg:text-4xl font-extrabold text-slate-900 tracking-tight leading-tight">
-          Practical Advice for Indian Consumers
+          Practical Advice for Smart Shoppers
         </h1>
         <p className="text-slate-600 text-xs sm:text-sm max-w-2xl leading-relaxed">
-          Tested strategies on saving electricity, decluttering compact apartments, and making high-value investments for everyday Indian life.
+          Tested strategies on saving electricity, decluttering compact living spaces, and making high-value investments for everyday life.
         </p>
       </div>
 
@@ -497,7 +497,7 @@ export const ArticleDetailPage: React.FC<ArticleDetailPageProps> = ({ slug }) =>
               Recommended Products Mentioned in this Guide
             </h2>
             <p className="text-[11px] sm:text-xs text-slate-500">
-              Handpicked and tested for Indian households with live INR prices.
+              Handpicked and tested recommendations with verified regional prices.
             </p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-5">

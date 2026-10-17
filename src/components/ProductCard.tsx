@@ -30,16 +30,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const saved = isProductSaved(product.id);
   const inCompare = isProductInCompare(product.id);
 
-  const isIndia = selectedCountry === 'IN';
-  const currencySymbol =
-    selectedCountry === 'US'
-      ? '$'
-      : selectedCountry === 'UK'
-      ? '£'
-      : selectedCountry === 'CA'
-      ? 'C$'
-      : '₹';
-
   const discountPercent = product.oldPrice
     ? Math.round(((product.oldPrice - product.price) / product.oldPrice) * 100)
     : null;

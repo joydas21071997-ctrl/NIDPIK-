@@ -364,8 +364,17 @@ export const CategoryPage: React.FC<CategoryPageProps> = ({ slug }) => {
 };
 
 export const CategoriesIndexPage: React.FC = () => {
-  const { navigate, categories: contextCategories } = useApp();
+  const { navigate, categories: contextCategories, selectedCountry } = useApp();
   const allCategories = contextCategories && contextCategories.length > 0 ? contextCategories : categories;
+
+  const countryName =
+    selectedCountry === 'US'
+      ? 'US'
+      : selectedCountry === 'UK'
+      ? 'UK'
+      : selectedCountry === 'CA'
+      ? 'Canada'
+      : 'India';
 
   return (
     <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-10 space-y-6 sm:space-y-8 overflow-hidden">
@@ -376,7 +385,7 @@ export const CategoriesIndexPage: React.FC = () => {
           Browse All Product Categories
         </h1>
         <p className="text-slate-600 text-xs sm:text-sm max-w-2xl leading-relaxed">
-          NIDPIK categorizes everyday essentials, electronics, kitchen appliances, and budget finds tailored to Indian living conditions and INR budgets.
+          NIDPIK categorizes everyday essentials, electronics, kitchen appliances, and budget finds tailored to daily living conditions and value budgets in {countryName}.
         </p>
       </div>
 

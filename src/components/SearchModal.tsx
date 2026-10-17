@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../context/AppContext';
 import { Search, X, ArrowRight, Tag, BookOpen, Scale, FileText, Package, Sparkles } from 'lucide-react';
-import { searchAll } from '../data';
+import { searchAll, budgetTiers } from '../data';
 
 export const SearchModal: React.FC = () => {
-  const { searchModalOpen, setSearchModalOpen, navigate, openAiAdvisorWithPrompt } = useApp();
+  const { searchModalOpen, setSearchModalOpen, navigate, openAiAdvisorWithPrompt, formatPrice } = useApp();
   const [query, setQuery] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -26,12 +26,12 @@ export const SearchModal: React.FC = () => {
     results.articles.length > 0;
 
   const quickPicks = [
-    'Best wireless earbuds under ₹2000',
+    'Best wireless earbuds',
     'Useful products for small kitchen',
-    'Best water bottle under ₹500',
-    'Useful products under ₹299',
+    'Best water bottle',
+    'Useful budget products',
     'Best budget products for students',
-    'Best products under ₹99'
+    'Best value products'
   ];
 
   const handleSelectQuery = (q: string) => {
@@ -64,7 +64,7 @@ export const SearchModal: React.FC = () => {
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search products, categories or your need (e.g. 'earbuds under ₹2000')..."
+            placeholder="Search products, categories or your need..."
             className="w-full bg-transparent text-slate-900 placeholder-slate-400 text-sm font-medium focus:outline-none"
           />
           {query && (
@@ -151,7 +151,7 @@ export const SearchModal: React.FC = () => {
                       className="p-2.5 text-left border border-slate-200 hover:border-blue-400 hover:bg-blue-50/50 rounded-xl transition-colors group"
                     >
                       <span className="text-xs font-semibold text-slate-900 group-hover:text-blue-600 block">
-                        {slug.replace('best-under-', 'Under ₹')}
+                        Under {formatPrice(parseInt(slug.split('-')[2]))}
                       </span>
                       <span className="text-[10px] text-slate-500">Value picks</span>
                     </button>

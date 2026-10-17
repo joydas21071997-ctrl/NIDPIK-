@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { formatPrice as formatPriceUtil } from '../utils/currency';
 import {
   Product,
@@ -50,6 +50,91 @@ export const COUNTRIES = [
   { code: 'CA', name: 'Canada', currencySymbol: 'C$', currencyCode: 'CAD', flag: '🇨🇦' },
 ];
 
+export interface RegionConfig {
+  code: 'IN' | 'US' | 'UK' | 'CA';
+  name: string;
+  currencySymbol: string;
+  currencyCode: string;
+  flag: string;
+  locale: string;
+  merchantsSummary: string;
+  disclosureText: string;
+  shopperAudience: string;
+  newsletterSubtitle: string;
+  trustBadges: { title: string; subtitle: string }[];
+}
+
+export const REGIONS_CONFIG: Record<'IN' | 'US' | 'UK' | 'CA', RegionConfig> = {
+  IN: {
+    code: 'IN',
+    name: 'India',
+    currencySymbol: '₹',
+    currencyCode: 'INR',
+    flag: '🇮🇳',
+    locale: 'en-IN',
+    merchantsSummary: 'Amazon India, Flipkart, and trusted partner stores',
+    disclosureText: 'Product prices, discounts, and availability are subject to merchant updates on Amazon India, Flipkart, and verified partner websites.',
+    shopperAudience: 'smart shoppers across India',
+    newsletterSubtitle: 'Weekly handpicked value finds, practical buying guides, and honest comparisons for Indian households and everyday life.',
+    trustBadges: [
+      { title: 'Zero Fabricated Reviews', subtitle: 'Authentic real-world testing' },
+      { title: 'INR Verified Pricing', subtitle: 'Fair price tracking' },
+      { title: 'Verified Buying Guides', subtitle: 'Clear consumer advice' },
+    ]
+  },
+  US: {
+    code: 'US',
+    name: 'United States',
+    currencySymbol: '$',
+    currencyCode: 'USD',
+    flag: '🇺🇸',
+    locale: 'en-US',
+    merchantsSummary: 'Amazon.com, Walmart, Best Buy, and trusted partner stores',
+    disclosureText: 'Product prices, discounts, and availability are subject to merchant updates on Amazon.com, Walmart, Best Buy, and verified partner stores.',
+    shopperAudience: 'smart shoppers in the United States',
+    newsletterSubtitle: 'Weekly handpicked value finds, practical buying guides, and honest comparisons for US homes and everyday life.',
+    trustBadges: [
+      { title: 'Zero Fabricated Reviews', subtitle: 'Authentic real-world testing' },
+      { title: 'USD Real-Time Pricing', subtitle: 'Fair price tracking' },
+      { title: 'Verified Buying Guides', subtitle: 'Clear consumer advice' },
+    ]
+  },
+  UK: {
+    code: 'UK',
+    name: 'United Kingdom',
+    currencySymbol: '£',
+    currencyCode: 'GBP',
+    flag: '🇬🇧',
+    locale: 'en-GB',
+    merchantsSummary: 'Amazon UK, Currys, Argos, and trusted partner stores',
+    disclosureText: 'Product prices, discounts, and availability are subject to merchant updates on Amazon UK, Currys, Argos, and verified partner stores.',
+    shopperAudience: 'smart shoppers across the United Kingdom',
+    newsletterSubtitle: 'Weekly handpicked value finds, practical buying guides, and honest comparisons for UK homes and everyday life.',
+    trustBadges: [
+      { title: 'Zero Fabricated Reviews', subtitle: 'Authentic real-world testing' },
+      { title: 'GBP Fair Pricing', subtitle: 'Fair price tracking' },
+      { title: 'Verified Buying Guides', subtitle: 'Clear consumer advice' },
+    ]
+  },
+  CA: {
+    code: 'CA',
+    name: 'Canada',
+    currencySymbol: 'C$',
+    currencyCode: 'CAD',
+    flag: '🇨🇦',
+    locale: 'en-CA',
+    merchantsSummary: 'Amazon Canada, Best Buy, Canadian Tire, and partner stores',
+    disclosureText: 'Product prices, discounts, and availability are subject to merchant updates on Amazon Canada, Best Buy, Canadian Tire, and verified partner stores.',
+    shopperAudience: 'smart shoppers across Canada',
+    newsletterSubtitle: 'Weekly handpicked value finds, practical buying guides, and honest comparisons for Canadian households and everyday life.',
+    trustBadges: [
+      { title: 'Zero Fabricated Reviews', subtitle: 'Authentic real-world testing' },
+      { title: 'CAD Verified Pricing', subtitle: 'Fair price tracking' },
+      { title: 'Verified Buying Guides', subtitle: 'Clear consumer advice' },
+    ]
+  }
+};
+
 interface AppContextType {
   // Navigation & Router
   currentPath: string;
@@ -58,6 +143,7 @@ interface AppContextType {
   // Market / Country Selector
   selectedCountry: 'IN' | 'US' | 'UK' | 'CA';
   setSelectedCountry: (country: 'IN' | 'US' | 'UK' | 'CA') => void;
+  currentRegion: RegionConfig;
 
   // Search Modal
   searchModalOpen: boolean;
@@ -151,6 +237,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return 'IN';
   });
 
+  const currentRegion = useMemo(() => {
+    return REGIONS_CONFIG[selectedCountry] || REGIONS_CONFIG.IN;
+  }, [selectedCountry]);
+
 
 
 // ... (in AppProvider)
@@ -161,15 +251,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
 
 
-  const getAffiliateUrl = (product: Product) => {
-    // Basic logic: if affiliate URL contains 'amazon.in', replace with appropriate market if supported
-    // Real-world: This should be product-specific per market
-    if (product.affiliateUrl.includes('amazon.in')) {
-      if (selectedCountry === 'US') return product.affiliateUrl.replace('amazon.in', 'amazon.com');
-      if (selectedCountry === 'UK') return product.affiliateUrl.replace('amazon.in', 'amazon.co.uk');
-      if (selectedCountry === 'CA') return product.affiliateUrl.replace('amazon.in', 'amazon.ca');
+  const getAffiliateUrl = (product: Product): string => {
+    if (!product) return '';
+    // 1. Check country-specific URL in affiliateUrls map
+    if (product.affiliateUrls && product.affiliateUrls[selectedCountry]) {
+      const url = product.affiliateUrls[selectedCountry];
+      if (url && url.trim().length > 0) return url.trim();
     }
-    return product.affiliateUrl;
+    // 2. Fallback to any configured URL in affiliateUrls map
+    if (product.affiliateUrls) {
+      const firstAvailable = Object.values(product.affiliateUrls).find((u) => u && u.trim().length > 0);
+      if (firstAvailable) return firstAvailable.trim();
+    }
+    // 3. Fallback to legacy affiliateUrl
+    if (product.affiliateUrl && product.affiliateUrl.trim().length > 0) {
+      return product.affiliateUrl.trim();
+    }
+    return '';
   };
 
 
@@ -453,7 +551,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       isOpen: true,
       productName: product.name,
       merchantName: product.merchant.name,
-      url: product.affiliateUrl
+      url: getAffiliateUrl(product)
     });
   };
 
@@ -574,6 +672,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         navigate,
         selectedCountry,
         setSelectedCountry,
+        currentRegion,
         searchModalOpen,
         setSearchModalOpen,
         aiAdvisorOpen,

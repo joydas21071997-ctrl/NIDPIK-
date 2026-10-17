@@ -38,10 +38,10 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ slug }) =>
     removeFromCompare,
     isProductInCompare,
     triggerAffiliateClick,
-    selectedCountry
+    selectedCountry,
+    formatPrice
   } = useApp();
 
-  const isIndia = selectedCountry === 'IN';
   const currentCountry = COUNTRIES.find((c) => c.code === selectedCountry) || COUNTRIES[0];
 
   const product = getProductBySlug(slug);
@@ -273,27 +273,21 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ slug }) =>
 
             {/* Price Row */}
             <div className="p-4 bg-slate-50/70 rounded-2xl border border-slate-200/80 space-y-3">
-              {!isIndia && (
-                <div className="text-xs text-amber-800 bg-amber-50 p-2.5 rounded-xl border border-amber-200 flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
-                  <span>Verified local offer unavailable for {currentCountry.name} ({currentCountry.currencySymbol}). Curated for Indian market (₹).</span>
-                </div>
-              )}
               <div className="flex flex-wrap items-baseline justify-between gap-4">
                 <div>
                   <span className="text-xs text-slate-500 block mb-0.5">
-                    {isIndia ? `Estimated Price on ${product.merchant.name}` : `Curated Market Price (India)`}
+                    Estimated Price on {product.merchant.name}
                   </span>
                   <div className="flex items-baseline gap-3">
                     <span className="text-3xl font-extrabold text-slate-900 tabular-nums">
-                      ₹{product.price.toLocaleString('en-IN')}
+                      {formatPrice(product.price)}
                     </span>
-                    {isIndia && product.oldPrice && (
+                    {product.oldPrice && (
                       <span className="text-sm text-slate-600 line-through tabular-nums">
-                        MRP ₹{product.oldPrice.toLocaleString('en-IN')}
+                        MRP {formatPrice(product.oldPrice)}
                       </span>
                     )}
-                    {isIndia && discountPercent && (
+                    {discountPercent && (
                       <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">
                         Save {discountPercent}%
                       </span>
@@ -303,19 +297,13 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ slug }) =>
 
                 {/* ACTION BUTTONS */}
                 <div className="flex items-center gap-2 w-full sm:w-auto">
-                  {isIndia ? (
-                    <button
-                      onClick={() => triggerAffiliateClick(product)}
-                      className="flex-1 sm:flex-initial py-3 px-6 bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm rounded-xl transition-all shadow-md flex items-center justify-center gap-2 group cursor-pointer"
-                    >
-                      <span>Check Price on {product.merchant.name.split(' ')[0]}</span>
-                      <ExternalLink className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
-                    </button>
-                  ) : (
-                    <div className="flex-1 sm:flex-initial py-3 px-6 bg-slate-200 text-slate-600 font-bold text-xs rounded-xl text-center">
-                      India Market Offer Only
-                    </div>
-                  )}
+                  <button
+                    onClick={() => triggerAffiliateClick(product)}
+                    className="flex-1 sm:flex-initial py-3 px-6 bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm rounded-xl transition-all shadow-md flex items-center justify-center gap-2 group cursor-pointer"
+                  >
+                    <span>Check Price on {product.merchant.name.split(' ')[0]}</span>
+                    <ExternalLink className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                  </button>
 
                   <button
                     onClick={() => {
@@ -351,7 +339,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ slug }) =>
                       Price Tracker &amp; Deal Alert
                     </span>
                     <span className="text-[11px] text-slate-500">
-                      Lowest recorded price: <strong className="text-slate-700">₹{Math.round(product.price * 0.92).toLocaleString('en-IN')}</strong>
+                      Lowest recorded price: <strong className="text-slate-700">{formatPrice(Math.round(product.price * 0.92))}</strong>
                     </span>
                   </div>
                 </div>
@@ -369,7 +357,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ slug }) =>
               {alertOpen && (
                 <form onSubmit={handlePriceAlertSubmit} className="pt-3 border-t border-slate-100 space-y-2.5 animate-in fade-in duration-150">
                   <p className="text-xs text-slate-600 font-medium">
-                    We track Indian retail prices daily. Get an instant email alert when this item drops below your target:
+                    We track verified retail prices daily. Get an instant email alert when this item drops below your target:
                   </p>
                   <div className="flex flex-col sm:flex-row gap-2">
                     <input
@@ -381,7 +369,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ slug }) =>
                       className="flex-1 px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 font-medium text-slate-900"
                     />
                     <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-300 rounded-xl px-2.5 py-1">
-                      <span className="text-xs font-bold text-slate-500">Target ₹</span>
+                      <span className="text-xs font-bold text-slate-500">Target ({currentCountry.currencySymbol})</span>
                       <input
                         type="number"
                         required
@@ -586,7 +574,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ slug }) =>
               </span>
             </div>
             <p className="text-xs text-slate-500 mt-1">
-              Real experiences from verified Indian purchasers and daily users.
+              Real experiences from verified purchasers and daily users.
             </p>
           </div>
 
