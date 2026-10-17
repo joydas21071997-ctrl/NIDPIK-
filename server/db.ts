@@ -396,10 +396,10 @@ function seedDatabaseIfEmpty() {
   const usersToSeed = [
     {
       id: 'user_owner',
-      email: 'admin@nidpik.in',
+      email: 'joydas.21071997@gmail.com',
       name: 'NIDPIK Owner',
       role: 'OWNER',
-      passwords: ['Nidpik@Secure#2026']
+      passwords: ['Jd21251997*#']
     },
     {
       id: 'user_editor',
