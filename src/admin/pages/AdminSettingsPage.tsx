@@ -40,7 +40,7 @@ export const AdminSettingsPage: React.FC = () => {
     logoUrl: '',
     currencySymbol: '₹',
     minBudgetEntry: '99',
-    contactEmail: 'editor@nidpik.in',
+    contactEmail: 'hello@nidpik.com',
     affiliateDisclaimer: 'Some links on NIDPIK are affiliate links. When you purchase through them, we may earn a modest commission from approved merchant partners like Amazon India at no additional cost to you.',
     socialTwitter: 'https://twitter.com/nidpik_in',
     socialInstagram: 'https://instagram.com/nidpik_in',
@@ -488,9 +488,6 @@ export const AdminSettingsPage: React.FC = () => {
                 className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:border-blue-500 focus:bg-white transition-colors"
               />
             </div>
-            <p className="text-[10px] text-slate-400 mt-1">
-              (Default preset for owner is: <code className="font-mono bg-slate-100 px-1 py-0.5 rounded text-slate-600">Nidpik@Secure#2026</code>)
-            </p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

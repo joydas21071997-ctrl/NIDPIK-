@@ -16,7 +16,7 @@ export const AboutPage: React.FC = () => {
           About NIDPIK
         </h1>
         <p className="text-slate-600 text-base sm:text-lg leading-relaxed">
-          NIDPIK comes from two simple words: <strong className="text-slate-900">NEED + PICK</strong>. Our mission is simple: help Indian consumers cut through online marketing hype and discover the right product for their actual daily need.
+          NIDPIK comes from two simple words: <strong className="text-slate-900">NEED + PICK</strong>. Our mission is simple: help shoppers worldwide cut through online marketing hype and discover the right product for their actual daily need.
         </p>
       </div>
 
@@ -24,13 +24,13 @@ export const AboutPage: React.FC = () => {
         <h2 className="text-xl font-bold text-slate-900">Why NIDPIK Exists</h2>
         <div className="space-y-4 text-sm text-slate-700 leading-relaxed">
           <p>
-            Online shopping in India has exploded, but so has consumer confusion. E-commerce platforms are flooded with hundreds of unverified white-label products, fake ratings, sponsored search rankings, and superficial specifications that don't reveal how a product actually behaves in an Indian household.
+            Online shopping has exploded globally, but so has consumer confusion. E-commerce platforms are flooded with hundreds of unverified white-label products, fake ratings, sponsored search rankings, and superficial specifications that don't reveal how a product actually behaves in real life.
           </p>
           <p>
-            An electric kettle that works great in London might choke on hard Chennai groundwater within 3 weeks. A pair of wireless earbuds might sound decent in a quiet studio but fail completely in an open Delhi auto-rickshaw.
+            An electric kettle or gadget that works great in one climate might fail in another. A pair of wireless earbuds might sound decent in a quiet studio but fail completely in a noisy commute.
           </p>
           <p>
-            NIDPIK was founded to solve this problem from an <strong className="text-slate-900">India-first perspective</strong>: testing for local water hardness, tropical humidity, 230V voltage stability, public transit commutes, and practical INR budgets starting right from ₹99.
+            NIDPIK was founded to solve this problem from a <strong className="text-slate-900">global perspective</strong>: testing for real-world durability, component quality, voltage/power standards, and practical budget value starting right from basic entry thresholds.
           </p>
         </div>
       </div>
@@ -99,7 +99,7 @@ export const EditorialPolicyPage: React.FC = () => {
           NIDPIK Editorial Policy
         </h1>
         <p className="text-slate-600 text-base leading-relaxed">
-          Our standards of independence, research rigor, and consumer trust.
+          Our standards of independence, research rigor, and consumer trust worldwide.
         </p>
       </div>
 
@@ -120,7 +120,7 @@ export const EditorialPolicyPage: React.FC = () => {
             2. Zero Fabricated Claims or Reviews
           </h2>
           <p>
-            We strictly prohibit fake customer quotes, invented review counts, artificial 5-star badges, and deceptive countdown timers. When sample or demo data is utilized in our prototype environment, it is clearly distinguished from factual verifications.
+            We strictly prohibit fake customer quotes, invented review counts, artificial rating badges, and deceptive countdown timers. When sample or demo data is utilized in our prototype environment, it is clearly distinguished from factual verifications.
           </p>
         </div>
 
@@ -130,7 +130,7 @@ export const EditorialPolicyPage: React.FC = () => {
             3. Price Accuracy &amp; Transparency
           </h2>
           <p>
-            Because third-party merchant prices fluctuate frequently during promotional festival sales on Amazon India and Flipkart, we prominently display "Last Checked" timestamps. We urge consumers to verify the final price on the checkout page before completing their order.
+            Because third-party merchant prices fluctuate frequently during promotional festival sales across regional Amazon and partner stores, we prominently display "Last Checked" timestamps. We urge consumers to verify the final price on the checkout page before completing their order.
           </p>
         </div>
 
@@ -158,7 +158,7 @@ export const AffiliateDisclosurePage: React.FC = () => {
           Affiliate Disclosure
         </h1>
         <p className="text-slate-600 text-base leading-relaxed">
-          Complete transparency about how NIDPIK sustains its research and operations.
+          Complete transparency about how NIDPIK sustains its global research and operations.
         </p>
       </div>
 
@@ -167,20 +167,20 @@ export const AffiliateDisclosurePage: React.FC = () => {
           <ShieldCheck className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
           <div className="text-xs text-slate-800 leading-relaxed">
             <strong className="block text-sm mb-1 text-blue-900 font-bold">The Core Rule:</strong>
-            You never pay a single extra rupee when purchasing through a NIDPIK link. The retail price you pay on Amazon India, Flipkart, or Croma is identical whether you visit directly or click through our guide.
+            You never pay a single extra amount when purchasing through a NIDPIK link. The retail price you pay on regional Amazon, Walmart, or partner stores is identical whether you visit directly or click through our guide.
           </div>
         </div>
 
         <div className="space-y-3">
           <h2 className="text-base font-bold text-slate-900">How It Works</h2>
           <p>
-            NIDPIK is a participant in affiliate marketing programs, including the Amazon Associates Program, Flipkart Affiliate Program, and partner affiliate networks. These programs provide a means for independent publishers to earn advertising fees by linking to official merchant websites.
+            NIDPIK is a participant in affiliate marketing programs, including the Amazon Associates Program and global partner affiliate networks. These programs provide a means for independent publishers to earn advertising fees by linking to official merchant websites.
           </p>
           <p className="bg-slate-50 border-l-4 border-amber-500 p-3 rounded-r-xl text-xs text-slate-800">
-            <strong>Amazon Associates Statement:</strong> As an Amazon Associate, NIDPIK earns from qualifying purchases. Product prices, discounts, and availability are accurate as of the date/time indicated and are subject to change by Amazon India.
+            <strong>Affiliate Statement:</strong> As an Amazon Associate, NIDPIK earns from qualifying purchases. Product prices, discounts, and availability are accurate as of the date/time indicated and are subject to change by regional merchants.
           </p>
           <p>
-            When you click a "Check Price" or "View on Amazon" button on NIDPIK and make a purchase on that merchant site within a specified cookie window, the merchant pays NIDPIK a small referral commission (typically 1% to 6% depending on product category).
+            When you click a "Check Price" or "View on Store" button on NIDPIK and make a purchase on that merchant site within a specified cookie window, the merchant pays NIDPIK a small referral commission at zero additional cost to you.
           </p>
         </div>
 
@@ -205,7 +205,7 @@ export const HowWeChoosePage: React.FC = () => {
           How We Choose &amp; Test Products
         </h1>
         <p className="text-slate-600 text-base leading-relaxed">
-          Our 5-stage research and verification methodology for Indian consumers.
+          Our rigorous multi-stage research and verification methodology for global shoppers.
         </p>
       </div>
 
@@ -214,27 +214,27 @@ export const HowWeChoosePage: React.FC = () => {
           {
             step: '01',
             title: 'Identify the Real Consumer Need',
-            desc: 'We start with problems, not marketing catalogs. We survey urban apartment dwellers, students, and commuters to define what actually breaks down or causes daily friction.'
+            desc: 'We start with problems, not marketing catalogs. We survey urban households, students, and remote professionals to define what actually breaks down or causes daily friction.'
           },
           {
             step: '02',
             title: 'Technical Specifications Audit',
-            desc: 'We verify manufacturer claims against real component sheets: 304 vs 201 steel grades, battery capacity in milliamp-hours, driver diaphragm coatings, and wattage draw.'
+            desc: 'We verify manufacturer claims against real component sheets: build materials, battery capacity in milliamp-hours, driver diaphragm coatings, and power draw.'
           },
           {
             step: '03',
-            title: 'Indian Environmental Testing',
-            desc: 'We assess how gear survives hard borewell tap water, high monsoon humidity, 40°C summer heat, train vibrations, and fluctuating power voltages.'
+            title: 'Real-World Environmental Testing',
+            desc: 'We assess how gear survives rigorous daily use, temperature variations, climate humidity, and long-term mechanical stress.'
           },
           {
             step: '04',
-            title: 'Price-to-Utility Ratio (Starting from ₹99)',
-            desc: 'We calculate value per rupee. A ₹249 braided cable that lasts 2 years scores higher than a ₹1,200 delicate branded cable that frays in 4 months.'
+            title: 'Price-to-Utility Ratio',
+            desc: 'We calculate value per dollar/currency spent. A durable budget pick that lasts years scores higher than an expensive delicate branded item.'
           },
           {
             step: '05',
             title: 'Merchant & Warranty Support Check',
-            desc: 'We ensure recommended brands have functional warranty service centers or doorstep replacement options across Indian Tier-1 and Tier-2 cities.'
+            desc: 'We ensure recommended brands have functional warranty service centers or reliable return policies across supported global regions.'
           }
         ].map((item) => (
           <div key={item.step} className="bg-white rounded-3xl p-6 border border-slate-200 shadow-xs flex items-start gap-4">
@@ -295,7 +295,7 @@ export const ContactPage: React.FC = () => {
                   required
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g. Rahul Sharma"
+                  placeholder="e.g. Alex Morgan"
                   className="w-full text-xs px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500"
                 />
               </div>
@@ -326,7 +326,7 @@ export const ContactPage: React.FC = () => {
 
               <button
                 type="submit"
-                className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center justify-center gap-1.5"
+                className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 <span>Send Message</span>
                 <Send className="w-3.5 h-3.5" />
@@ -345,7 +345,7 @@ export const ContactPage: React.FC = () => {
               For urgent factual corrections on product guides:
             </p>
             <div className="font-mono text-xs text-blue-700 font-semibold bg-white p-2 rounded-lg border border-slate-200">
-              editorial@nidpik.in
+              hello@nidpik.com
             </div>
             <p className="text-[11px] text-slate-500 pt-2 border-t border-slate-200">
               Please include the specific article or product URL in your message.
@@ -368,11 +368,11 @@ export const PrivacyPolicyPage: React.FC = () => {
         </p>
         <h2 className="text-base font-bold text-slate-900">Information We Collect</h2>
         <p>
-          We only collect email addresses when you voluntarily subscribe to our newsletter. We use anonymous session analytics to determine which product guides and budget tiers are most helpful to readers.
+          We only collect email addresses when you voluntarily subscribe to our newsletter. We use anonymous session analytics to determine which product guides and budget tiers are most helpful to readers worldwide.
         </p>
         <h2 className="text-base font-bold text-slate-900">Cookies &amp; Affiliate Tracking</h2>
         <p>
-          When you click a merchant affiliate link (such as Amazon India), the merchant places a cookie on your device to attribute any qualifying purchase. These cookies are governed by the merchant's respective privacy policies.
+          When you click a merchant affiliate link (such as Amazon or partner stores), the merchant places a cookie on your device to attribute any qualifying purchase. These cookies are governed by the merchant's respective privacy policies.
         </p>
       </div>
     </div>
@@ -390,11 +390,11 @@ export const TermsPage: React.FC = () => {
         </p>
         <h2 className="text-base font-bold text-slate-900">Not a Retailer</h2>
         <p>
-          NIDPIK is an informational discovery and review media website. We do not manufacture, package, warranty, or ship products. All purchases occur directly on third-party merchant platforms subject to their respective terms.
+          NIDPIK is an informational discovery and review media platform. We do not manufacture, package, warranty, or ship products. All purchases occur directly on third-party merchant platforms subject to their respective terms.
         </p>
         <h2 className="text-base font-bold text-slate-900">Accuracy of Information</h2>
         <p>
-          While we strive for extreme diligence in all specifications, prices and product availability are controlled exclusively by merchants and are subject to immediate changes.
+          While we strive for extreme diligence in all specifications, prices and product availability are controlled exclusively by merchants and are subject to immediate changes across supported global markets.
         </p>
       </div>
     </div>
