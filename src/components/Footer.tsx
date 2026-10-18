@@ -1,29 +1,44 @@
 import React, { useState } from 'react';
 import { Logo } from './Logo';
-import { useApp } from '../context/AppContext';
-import { ShieldCheck, Sparkles, CheckCircle2, ArrowRight } from 'lucide-react';
+import { useApp, COUNTRIES, REGIONS_CONFIG, type RegionConfig } from '../context/AppContext';
+import { ShieldCheck, Sparkles, CheckCircle2, ArrowRight, KeyRound, Globe, Mail } from 'lucide-react';
 import { categories } from '../data/categories';
-import { budgetTiers } from '../data/budgetTiers';
 import { api } from '../services/api';
 import { db } from '../firebase/config';
 import { collection, addDoc } from 'firebase/firestore';
 
-export const Footer: React.FC = () => {
-  const { navigate, formatPrice, selectedCountry, currentRegion } = useApp();
+export interface FooterProps {
+  regionConfig?: RegionConfig;
+  className?: string;
+}
+
+export const Footer: React.FC<FooterProps> = ({ regionConfig: propRegionConfig, className = '' }) => {
+  const {
+    navigate,
+    formatPrice,
+    selectedCountry,
+    setSelectedCountry,
+    currentRegion
+  } = useApp();
+
   const [email, setEmail] = useState('');
   const [subscribed, setSubscribed] = useState(false);
+
+  // Use props if passed, otherwise fall back to AppContext regional configuration
+  const region: RegionConfig = propRegionConfig || currentRegion || REGIONS_CONFIG[selectedCountry] || REGIONS_CONFIG.IN;
 
   const handleSubscribe = (e: React.FormEvent) => {
     e.preventDefault();
     const cleanEmail = email.trim();
     if (cleanEmail && cleanEmail.includes('@')) {
       // 1. Save to Backend Database
-      api.subscribers.subscribe(cleanEmail, 'footer').catch(() => {});
+      api.subscribers.subscribe(cleanEmail, `footer_${region.code.toLowerCase()}`).catch(() => {});
 
       // 2. Save to Firestore
       try {
         addDoc(collection(db, 'newsletter_subscribers'), {
           email: cleanEmail,
+          country: region.code,
           source: 'footer',
           createdAt: new Date().toISOString()
         }).catch(() => {});
@@ -37,35 +52,54 @@ export const Footer: React.FC = () => {
   };
 
   return (
-    <footer className="bg-slate-900 text-slate-300 pt-16 pb-12 border-t border-slate-800">
+    <footer className={`bg-slate-900 text-slate-300 pt-16 pb-12 border-t border-slate-800 ${className}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* TOP BRAND & NEWSLETTER STRIP */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 pb-12 border-b border-slate-800">
           <div className="lg:col-span-6 space-y-4">
-            <div className="bg-white px-3 py-1.5 rounded-lg inline-block">
+            <div className="bg-white px-3 py-1.5 rounded-lg inline-block shadow-xs">
               <Logo size="md" showTagline={true} />
             </div>
             <p className="text-slate-400 text-sm leading-relaxed max-w-lg">
-              <strong className="text-white font-medium">NIDPIK</strong> (Need + Pick) is an independent product discovery and buying guide platform for {currentRegion.shopperAudience}. We help you cut through marketing hype to find what is genuinely worth buying in {currentRegion.name} {currentRegion.flag}.
+              <strong className="text-white font-medium">NIDPIK</strong> (Need + Pick) is an independent product discovery and buying guide platform for {region.shopperAudience}. We help you cut through marketing hype to find what is genuinely worth buying in {region.name} {region.flag}.
             </p>
-            <div className="flex items-center gap-4 text-xs text-slate-400 font-medium flex-wrap">
-              {currentRegion.trustBadges.map((badge, idx) => (
+            
+            {/* Dynamic Regional Trust Badges */}
+            <div className="flex items-center gap-4 text-xs text-slate-400 font-medium flex-wrap pt-1">
+              {(region.trustBadges || []).map((badge, idx) => (
                 <span key={idx} className="flex items-center gap-1.5 text-slate-300" title={badge.subtitle}>
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                  {badge.title}
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                  <span>{badge.title}</span>
                 </span>
               ))}
+            </div>
+
+            {/* Direct Contact & Active Market Indicator */}
+            <div className="flex items-center gap-4 text-xs text-slate-400 pt-2 flex-wrap">
+              <span className="flex items-center gap-1.5 text-slate-300">
+                <Mail className="w-3.5 h-3.5 text-blue-400" />
+                <span>Editorial Desk:</span>
+                <a href={`mailto:${region.contactEmail || 'hello@nidpik.com'}`} className="text-blue-400 hover:underline">
+                  {region.contactEmail || 'hello@nidpik.com'}
+                </a>
+              </span>
+              <span className="text-slate-600">·</span>
+              <span className="flex items-center gap-1.5 text-slate-300">
+                <Globe className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Market:</span>
+                <strong className="text-white font-medium">{region.name} ({region.currencyCode})</strong>
+              </span>
             </div>
           </div>
 
           <div className="lg:col-span-6 flex flex-col justify-center bg-slate-800/60 p-6 rounded-2xl border border-slate-700/60">
             <h3 className="text-white font-bold text-base mb-1 flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-blue-400" />
-              Get Better Product Picks
+              Get Better Product Picks for {region.name} {region.flag}
             </h3>
             <p className="text-slate-400 text-xs mb-4">
-              {currentRegion.newsletterSubtitle} No spam.
+              {region.newsletterSubtitle} No spam.
             </p>
             {subscribed ? (
               <div className="bg-emerald-950/80 border border-emerald-500/40 text-emerald-300 text-xs px-4 py-3 rounded-lg flex items-center gap-2">
@@ -78,13 +112,13 @@ export const Footer: React.FC = () => {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Enter your email address..."
+                  placeholder={`Enter email for ${region.name} recommendations...`}
                   required
                   className="px-3.5 py-2.5 text-sm bg-slate-900 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 flex-1"
                 />
                 <button
                   type="submit"
-                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs rounded-lg transition-colors whitespace-nowrap flex items-center justify-center gap-1.5 shadow-sm"
+                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs rounded-lg transition-colors whitespace-nowrap flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
                 >
                   Subscribe
                   <ArrowRight className="w-3.5 h-3.5" />
@@ -131,13 +165,14 @@ export const Footer: React.FC = () => {
             </ul>
           </div>
 
-          {/* Col 2: Best Under ₹ */}
+          {/* Col 2: Dynamic Regional Budget Discovery */}
           <div>
-            <h4 className="text-white font-semibold uppercase tracking-wider text-[11px] mb-3">
-              Budget Discovery
+            <h4 className="text-white font-semibold uppercase tracking-wider text-[11px] mb-3 flex items-center gap-1.5">
+              <span>Budget Discovery</span>
+              <span className="text-[10px] text-blue-400 font-mono">({region.currencySymbol})</span>
             </h4>
             <ul className="space-y-2">
-              {budgetTiers.map((tier) => (
+              {(region.budgetTiers || []).map((tier) => (
                 <li key={tier.slug}>
                   <a
                     href={`/${tier.slug}`}
@@ -147,7 +182,8 @@ export const Footer: React.FC = () => {
                     }}
                     className="hover:text-blue-400 transition-colors flex items-center justify-between"
                   >
-                    <span>{`Budget Under ${formatPrice(tier.amount)}`}</span>
+                    <span>{tier.label}</span>
+                    <span className="text-[10px] text-slate-500 font-mono">Picks</span>
                   </a>
                 </li>
               ))}
@@ -157,7 +193,7 @@ export const Footer: React.FC = () => {
           {/* Col 3: Research & Guides */}
           <div>
             <h4 className="text-white font-semibold uppercase tracking-wider text-[11px] mb-3">
-              Research & Guides
+              Research &amp; Guides
             </h4>
             <ul className="space-y-2">
               <li>
@@ -223,7 +259,7 @@ export const Footer: React.FC = () => {
             </ul>
           </div>
 
-          {/* Col 4: Trust & Transparency */}
+          {/* Col 4: Trust & Editorial */}
           <div>
             <h4 className="text-white font-semibold uppercase tracking-wider text-[11px] mb-3">
               Trust &amp; Editorial
@@ -292,7 +328,7 @@ export const Footer: React.FC = () => {
             </ul>
           </div>
 
-          {/* Col 5: Legal */}
+          {/* Col 5: Legal & Privacy */}
           <div className="col-span-2 md:col-span-4 lg:col-span-1">
             <h4 className="text-white font-semibold uppercase tracking-wider text-[11px] mb-3">
               Legal &amp; Privacy
@@ -338,35 +374,61 @@ export const Footer: React.FC = () => {
           </div>
         </div>
 
-        {/* AFFILIATE DISCLOSURE & DISCLAIMER (MANDATORY) */}
-        <div className="pt-8 pb-4 text-xs text-slate-400 leading-relaxed space-y-2">
-          <div className="flex items-start gap-2 bg-slate-800/40 p-3.5 rounded-xl border border-slate-700/50">
-            <ShieldCheck className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
-            <div>
-              <strong className="text-slate-200">Affiliate Disclosure:</strong> As an Amazon Associate and verified partner, NIDPIK earns from qualifying purchases. If you purchase through merchant links on NIDPIK, we may earn an affiliate commission at zero additional cost to you. NIDPIK does not sell products directly. {currentRegion.disclosureText}
+        {/* AFFILIATE DISCLOSURE & DYNAMIC REGIONAL DISCLAIMER */}
+        <div className="pt-8 pb-4 text-xs text-slate-400 leading-relaxed space-y-4">
+          <div className="flex items-start gap-3 bg-slate-800/40 p-4 rounded-xl border border-slate-700/50">
+            <ShieldCheck className="w-5 h-5 text-blue-400 shrink-0 mt-0.5" />
+            <div className="space-y-1.5">
+              <div className="text-slate-200">
+                <strong className="text-white">Affiliate Disclosure:</strong> As an Amazon Associate and verified partner, NIDPIK earns from qualifying purchases. If you purchase through merchant links on NIDPIK, we may earn an affiliate commission at zero additional cost to you. NIDPIK does not sell products directly.
+              </div>
+              <div className="text-slate-400 text-[11px]">
+                {region.disclosureText}
+              </div>
+              <div className="text-[11px] text-slate-400 flex items-center gap-2 pt-0.5 flex-wrap">
+                <span className="font-semibold text-slate-300">Supported Markets &amp; Merchants:</span>
+                <span>{region.merchantsSummary}</span>
+              </div>
             </div>
           </div>
-          <div className="flex flex-col sm:flex-row items-center justify-between pt-4 text-slate-500 text-[11px] gap-2">
-            <div>
-                © 2026 NIDPIK. All rights reserved.
+
+          {/* Quick Region Switcher in Footer */}
+          <div className="flex flex-col sm:flex-row items-center justify-between pt-2 border-t border-slate-800/80 gap-3">
+            <div className="flex items-center gap-2 text-xs text-slate-400">
+              <span className="text-[11px] text-slate-500">Switch Market:</span>
+              <div className="flex items-center gap-1.5">
+                {COUNTRIES.map((c) => (
+                  <button
+                    key={c.code}
+                    type="button"
+                    onClick={() => setSelectedCountry(c.code as any)}
+                    className={`px-2 py-1 rounded-md text-[11px] font-medium transition-colors flex items-center gap-1 cursor-pointer ${
+                      selectedCountry === c.code
+                        ? 'bg-blue-600 text-white font-bold'
+                        : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
+                    }`}
+                  >
+                    <span>{c.flag}</span>
+                    <span>{c.code}</span>
+                  </button>
+                ))}
+              </div>
             </div>
-            <div className="flex items-center gap-4">
-              <span className="font-medium text-slate-400 flex items-center gap-1.5">
-                <span>{currentRegion.flag}</span>
-                <span>Need → Discover → Compare → Pick Right</span>
-              </span>
-              <span className="text-slate-600">·</span>
-              <a
-                href="/admin"
-                onClick={(e) => {
-                  e.preventDefault();
-                  navigate('/admin');
-                }}
-                className="text-slate-500 hover:text-blue-400 transition-colors"
-                title="CMS Admin Dashboard & Logo Settings"
+
+            <div className="flex items-center gap-4 text-slate-500 text-[11px]">
+              <div>
+                © 2026 NIDPIK. All rights reserved.
+              </div>
+              <span className="text-slate-700">·</span>
+              <button
+                type="button"
+                onClick={() => navigate('/admin')}
+                className="text-slate-600 hover:text-slate-400 p-1 rounded-md transition-colors cursor-pointer"
+                aria-label="Admin Access"
+                title="Admin Portal"
               >
-                Admin Console
-              </a>
+                <KeyRound className="w-3.5 h-3.5" />
+              </button>
             </div>
           </div>
         </div>

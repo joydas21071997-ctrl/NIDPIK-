@@ -10,9 +10,14 @@ export const AdminLoginPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // If already authenticated, redirect to /admin
+  // If already authenticated, redirect to /admin via useEffect
+  React.useEffect(() => {
+    if (isAdminAuthenticated) {
+      navigate('/admin', { replace: true, scroll: false });
+    }
+  }, [isAdminAuthenticated, navigate]);
+
   if (isAdminAuthenticated) {
-    navigate('/admin');
     return null;
   }
 
@@ -22,18 +27,13 @@ export const AdminLoginPage: React.FC = () => {
     setLoading(true);
 
     try {
-      await loginAdmin({ email, password });
+      await loginAdmin({ email: email.trim().toLowerCase(), password });
       navigate('/admin');
     } catch (err: any) {
       setError(err.message || 'Login failed. Please verify credentials.');
     } finally {
       setLoading(false);
     }
-  };
-
-  const fillCredentials = (demoEmail: string, demoPass: string) => {
-    setEmail(demoEmail);
-    setPassword(demoPass);
   };
 
   return (
@@ -74,7 +74,7 @@ export const AdminLoginPage: React.FC = () => {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="admin@nidpik.in"
+                placeholder="joydas.21071997@gmail.com"
                 className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:border-blue-500 focus:bg-white transition-colors"
               />
             </div>

@@ -1,16 +1,15 @@
 // src/utils/currency.ts
-import { COUNTRIES } from '../context/AppContext';
+import { COUNTRIES, EXCHANGE_RATES, type CountryCode } from '../config/regions';
 
-const exchangeRates: Record<string, number> = {
-  IN: 1,
-  US: 0.012,
-  UK: 0.009,
-  CA: 0.016,
-};
+export const formatPrice = (price: number | undefined | null, countryCode?: string): string => {
+  if (price === undefined || price === null || isNaN(price)) {
+    return '';
+  }
 
-export const formatPrice = (price: number, countryCode: string): string => {
-  const country = COUNTRIES.find((c) => c.code === countryCode) || COUNTRIES[0];
-  const rate = exchangeRates[countryCode] || 1;
-  const convertedPrice = Math.round(price * rate);
+  const validCountryCode = (countryCode?.toUpperCase() || 'IN') as CountryCode;
+  const country = COUNTRIES.find((c) => c.code === validCountryCode) || COUNTRIES[0];
+  const rate = EXCHANGE_RATES[validCountryCode] ?? 1;
+  const convertedPrice = Math.max(1, Math.round(price * rate));
+
   return `${country.currencySymbol}${convertedPrice.toLocaleString()}`;
 };

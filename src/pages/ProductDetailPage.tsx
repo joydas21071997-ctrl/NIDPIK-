@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useApp, COUNTRIES } from '../context/AppContext';
-import { getProductBySlug, products, buyingGuides, comparisons, reviews } from '../data';
+import { getProductBySlug as staticGetProductBySlug, products, buyingGuides, comparisons, reviews } from '../data';
 import { api } from '../services/api';
 import { Breadcrumbs } from '../components/Breadcrumbs';
 import { DisclosureBox } from '../components/DisclosureBox';
@@ -39,12 +39,13 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ slug }) =>
     isProductInCompare,
     triggerAffiliateClick,
     selectedCountry,
-    formatPrice
+    formatPrice,
+    getProductBySlug: getProductFromContext
   } = useApp();
 
   const currentCountry = COUNTRIES.find((c) => c.code === selectedCountry) || COUNTRIES[0];
 
-  const product = getProductBySlug(slug);
+  const product = (getProductFromContext && getProductFromContext(slug)) || staticGetProductBySlug(slug);
   const [imgError, setImgError] = useState(false);
 
   if (!product) {
@@ -129,7 +130,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ slug }) =>
     try {
       const res = await api.products.submitUserReview(product.id, {
         authorName: reviewName,
-        authorEmail: reviewEmail || 'community@nidpik.in',
+        authorEmail: reviewEmail || 'hello@nidpik.com',
         rating: reviewRating,
         headline: reviewHeadline,
         comment: reviewComment

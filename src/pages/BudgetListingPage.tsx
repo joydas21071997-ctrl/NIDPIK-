@@ -35,7 +35,7 @@ export const BudgetListingPage: React.FC<BudgetListingPageProps> = ({ slug }) =>
       <Breadcrumbs
         items={[
           { label: 'Budget Discovery', href: '/best-under-99' },
-          { label: tier.title.replace('Best Under ₹', 'Under ') }
+          { label: `Under ${formatPrice(tier.amount)}` }
         ]}
       />
 
@@ -47,11 +47,11 @@ export const BudgetListingPage: React.FC<BudgetListingPageProps> = ({ slug }) =>
         </div>
 
         <h1 className="text-2xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
-          {tier.title.replace('Best Under ₹', 'Best Under ')}
+          Best Picks Under {formatPrice(tier.amount)}
         </h1>
 
         <p className="text-slate-600 text-sm sm:text-base max-w-3xl leading-relaxed">
-          {tier.description} We handpick products that offer true durability, avoiding disposable plastic novelties so every {selectedCountry === 'IN' ? 'rupee' : 'dollar/pound'} spent provides lasting utility.
+          {tier.description} We handpick products that offer true durability, avoiding disposable novelty items so every unit of currency spent provides lasting real-world utility.
         </p>
 
         {/* QUICK SWITCHER FOR ALL BUDGET TIERS */}

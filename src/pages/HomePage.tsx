@@ -30,7 +30,7 @@ import {
 } from 'lucide-react';
 
 export const HomePage: React.FC = () => {
-  const { navigate, setSearchModalOpen, selectedCountry } = useApp();
+  const { navigate, setSearchModalOpen, selectedCountry, formatPrice } = useApp();
 
   const [lowerEmail, setLowerEmail] = useState('');
   const [lowerSubscribed, setLowerSubscribed] = useState(false);
@@ -395,7 +395,7 @@ export const HomePage: React.FC = () => {
                           {compProducts[0]?.brand}
                         </span>
                         <span className="text-[9px] sm:text-[10px] text-blue-600 font-bold">
-                          {compProducts[0]?.price}
+                          {formatPrice(compProducts[0]?.price ?? 0)}
                         </span>
                       </div>
                     </div>
@@ -409,7 +409,7 @@ export const HomePage: React.FC = () => {
                           {compProducts[1]?.brand}
                         </span>
                         <span className="text-[9px] sm:text-[10px] text-blue-600 font-bold">
-                          {compProducts[1]?.price}
+                          {formatPrice(compProducts[1]?.price ?? 0)}
                         </span>
                       </div>
                     </div>

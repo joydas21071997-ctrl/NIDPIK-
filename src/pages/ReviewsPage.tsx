@@ -1,13 +1,20 @@
 import React from 'react';
 import { useApp } from '../context/AppContext';
-import { reviews, getReviewBySlug, getProductBySlug, getAuthorById } from '../data';
+import { reviews as staticReviews, getReviewBySlug as staticGetReviewBySlug, getProductBySlug as staticGetProductBySlug, getAuthorById as staticGetAuthorById } from '../data';
 import { Breadcrumbs } from '../components/Breadcrumbs';
 import { DisclosureBox } from '../components/DisclosureBox';
 import { ProductCard } from '../components/ProductCard';
 import { FileText, Check, X, ArrowRight, ExternalLink, Sparkles, ShieldCheck } from 'lucide-react';
 
 export const ReviewsPage: React.FC = () => {
-  const { navigate, formatPrice } = useApp();
+  const {
+    navigate,
+    formatPrice,
+    reviews: contextReviews,
+    getProductBySlug: getProductFromContext
+  } = useApp();
+
+  const reviewList = (contextReviews && contextReviews.length > 0) ? contextReviews : staticReviews;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
@@ -23,8 +30,8 @@ export const ReviewsPage: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
-        {reviews.map((rev) => {
-          const product = getProductBySlug(rev.productId);
+        {reviewList.map((rev) => {
+          const product = (getProductFromContext && getProductFromContext(rev.productId)) || staticGetProductBySlug(rev.productId);
           return (
             <div
               key={rev.id}
@@ -80,8 +87,16 @@ interface ReviewDetailPageProps {
 }
 
 export const ReviewDetailPage: React.FC<ReviewDetailPageProps> = ({ slug }) => {
-  const { navigate, triggerAffiliateClick, formatPrice } = useApp();
-  const review = getReviewBySlug(slug);
+  const {
+    navigate,
+    triggerAffiliateClick,
+    formatPrice,
+    getReviewBySlug: getReviewFromContext,
+    getProductBySlug: getProductFromContext,
+    getAuthorById: getAuthorFromContext
+  } = useApp();
+
+  const review = (getReviewFromContext && getReviewFromContext(slug)) || staticGetReviewBySlug(slug);
 
   if (!review) {
     return (
@@ -98,8 +113,8 @@ export const ReviewDetailPage: React.FC<ReviewDetailPageProps> = ({ slug }) => {
     );
   }
 
-  const product = getProductBySlug(review.productId);
-  const author = getAuthorById(review.authorId);
+  const product = (getProductFromContext && getProductFromContext(review.productId)) || staticGetProductBySlug(review.productId);
+  const author = (getAuthorFromContext && getAuthorFromContext(review.authorId)) || staticGetAuthorById(review.authorId);
 
   return (
     <div className="max-w-4xl mx-auto px-3 sm:px-6 lg:px-8 py-5 sm:py-8 space-y-6 sm:space-y-10 overflow-hidden text-left">

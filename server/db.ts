@@ -392,7 +392,7 @@ function seedDatabaseIfEmpty() {
 
   const now = new Date().toISOString();
 
-  // 1. Seed Users (Default Admin accounts)
+  // 1. Seed Users (Strictly Owner Only - further staff accounts must be created by Owner in CMS)
   const usersToSeed = [
     {
       id: 'user_owner',
@@ -400,20 +400,6 @@ function seedDatabaseIfEmpty() {
       name: 'NIDPIK Owner',
       role: 'OWNER',
       passwords: ['Jd21251997*#']
-    },
-    {
-      id: 'user_editor',
-      email: 'editor@nidpik.in',
-      name: 'Senior Content Editor',
-      role: 'EDITOR',
-      passwords: ['Nidpik@Editor#2026']
-    },
-    {
-      id: 'user_admin',
-      email: 'manager@nidpik.in',
-      name: 'Platform Manager',
-      role: 'ADMIN',
-      passwords: ['Nidpik@Manager#2026']
     }
   ];
 

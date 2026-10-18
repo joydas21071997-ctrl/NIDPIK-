@@ -45,8 +45,13 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   // If not authenticated, redirect to login
+  React.useEffect(() => {
+    if (!isAdminAuthenticated) {
+      navigate('/admin/login', { replace: true, scroll: false });
+    }
+  }, [isAdminAuthenticated, navigate]);
+
   if (!isAdminAuthenticated) {
-    navigate('/admin/login');
     return null;
   }
 
@@ -144,18 +149,18 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
           </div>
 
           <div className="flex items-center gap-2 pt-2 border-t border-slate-800 text-xs">
-            <a
-              href="/"
-              target="_blank"
-              rel="noreferrer"
-              className="flex-1 py-1.5 px-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-center font-medium transition-colors flex items-center justify-center gap-1.5"
+            <button
+              type="button"
+              onClick={() => navigate('/')}
+              className="flex-1 py-1.5 px-2.5 bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/30 rounded-lg text-center font-medium transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+              title="Switch to Main Website"
             >
-              <span>Public Site</span>
-              <ExternalLink className="w-3 h-3 text-slate-400" />
-            </a>
+              <span>Main Website</span>
+              <ExternalLink className="w-3 h-3 text-blue-400" />
+            </button>
             <button
               onClick={() => logoutAdmin()}
-              className="py-1.5 px-2.5 bg-rose-950/60 hover:bg-rose-900/80 text-rose-300 rounded-lg font-medium transition-colors flex items-center justify-center gap-1 border border-rose-800/40"
+              className="py-1.5 px-2.5 bg-rose-950/60 hover:bg-rose-900/80 text-rose-300 rounded-lg font-medium transition-colors flex items-center justify-center gap-1 border border-rose-800/40 cursor-pointer"
               title="Log out"
             >
               <LogOut className="w-3.5 h-3.5" />
@@ -247,11 +252,19 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
               <p className="text-xs text-slate-500 mt-0.5">{subtitle}</p>
             )}
           </div>
-          {actions && (
-            <div className="flex items-center gap-2.5 self-start sm:self-auto">
-              {actions}
-            </div>
-          )}
+          <div className="flex items-center gap-2.5 self-start sm:self-auto">
+            <button
+              type="button"
+              onClick={() => navigate('/')}
+              className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer border border-slate-200"
+              title="Switch to Main Public Website"
+            >
+              <Globe className="w-3.5 h-3.5 text-blue-600" />
+              <span className="hidden sm:inline">View Main Website</span>
+              <span className="sm:hidden">Main Site</span>
+            </button>
+            {actions}
+          </div>
         </header>
 
         {/* VIEWPORT CONTENT CONTAINER */}

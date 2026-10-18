@@ -51,22 +51,29 @@ import { AdminAnalyticsPage } from './admin/pages/AdminAnalyticsPage';
 import { AdminSeoPage } from './admin/pages/AdminSeoPage';
 import { AdminSettingsPage } from './admin/pages/AdminSettingsPage';
 import { AdminAuditLogsPage } from './admin/pages/AdminAuditLogsPage';
+import { AdminSubscribersPage } from './admin/pages/AdminSubscribersPage';
 
 const RouterView: React.FC = () => {
-  const { currentPath, navigate, setSearchModalOpen } = useApp();
+  const { currentPath, navigate, setSearchModalOpen, isAdminAuthenticated } = useApp();
 
   // Normalize path (strip query params and trailing slash)
   const path = currentPath.split('?')[0].replace(/\/+$/, '') || '/';
 
   // ==========================================
-  // ADMIN CMS ROUTES
+  // ADMIN CMS ROUTES (Strict Security Guard)
   // ==========================================
-  if (path === '/admin/login') {
-    return <AdminLoginPage />;
-  }
-  if (path === '/admin') {
-    return <AdminDashboardPage />;
-  }
+  if (path.startsWith('/admin')) {
+    // If not authenticated or accessing login directly, render AdminLoginPage
+    if (!isAdminAuthenticated) {
+      return <AdminLoginPage />;
+    }
+    if (path === '/admin/login') {
+      return <AdminDashboardPage />;
+    }
+
+    if (path === '/admin') {
+      return <AdminDashboardPage />;
+    }
 
   // Admin Products
   if (path === '/admin/products/new') {
@@ -107,11 +114,15 @@ const RouterView: React.FC = () => {
   if (path === '/admin/affiliate-links') return <AdminAffiliateLinksPage />;
   if (path === '/admin/media') return <AdminMediaPage />;
   if (path === '/admin/authors') return <AdminAuthorsPage />;
+  if (path === '/admin/subscribers') return <AdminSubscribersPage />;
   if (path === '/admin/users') return <AdminUsersPage />;
   if (path === '/admin/analytics') return <AdminAnalyticsPage />;
   if (path === '/admin/seo') return <AdminSeoPage />;
   if (path === '/admin/settings') return <AdminSettingsPage />;
   if (path === '/admin/audit-logs') return <AdminAuditLogsPage />;
+
+    return <AdminDashboardPage />;
+  }
 
   // ==========================================
   // PUBLIC WEBSITE ROUTES

@@ -43,96 +43,22 @@ export interface AdminUser {
   lastLogin?: string;
 }
 
-export const COUNTRIES = [
-  { code: 'IN', name: 'India', currencySymbol: '₹', currencyCode: 'INR', flag: '🇮🇳' },
-  { code: 'US', name: 'United States', currencySymbol: '$', currencyCode: 'USD', flag: '🇺🇸' },
-  { code: 'UK', name: 'United Kingdom', currencySymbol: '£', currencyCode: 'GBP', flag: '🇬🇧' },
-  { code: 'CA', name: 'Canada', currencySymbol: 'C$', currencyCode: 'CAD', flag: '🇨🇦' },
-];
+import {
+  COUNTRIES,
+  REGIONS_CONFIG,
+  type RegionConfig,
+  type CountryCode,
+  type RegionBudgetTier,
+  type RegionTrustBadge
+} from '../config/regions';
 
-export interface RegionConfig {
-  code: 'IN' | 'US' | 'UK' | 'CA';
-  name: string;
-  currencySymbol: string;
-  currencyCode: string;
-  flag: string;
-  locale: string;
-  merchantsSummary: string;
-  disclosureText: string;
-  shopperAudience: string;
-  newsletterSubtitle: string;
-  trustBadges: { title: string; subtitle: string }[];
-}
-
-export const REGIONS_CONFIG: Record<'IN' | 'US' | 'UK' | 'CA', RegionConfig> = {
-  IN: {
-    code: 'IN',
-    name: 'India',
-    currencySymbol: '₹',
-    currencyCode: 'INR',
-    flag: '🇮🇳',
-    locale: 'en-IN',
-    merchantsSummary: 'Amazon India, Flipkart, and trusted partner stores',
-    disclosureText: 'Product prices, discounts, and availability are subject to merchant updates on Amazon India, Flipkart, and verified partner websites.',
-    shopperAudience: 'smart shoppers across India',
-    newsletterSubtitle: 'Weekly handpicked value finds, practical buying guides, and honest comparisons for Indian households and everyday life.',
-    trustBadges: [
-      { title: 'Zero Fabricated Reviews', subtitle: 'Authentic real-world testing' },
-      { title: 'INR Verified Pricing', subtitle: 'Fair price tracking' },
-      { title: 'Verified Buying Guides', subtitle: 'Clear consumer advice' },
-    ]
-  },
-  US: {
-    code: 'US',
-    name: 'United States',
-    currencySymbol: '$',
-    currencyCode: 'USD',
-    flag: '🇺🇸',
-    locale: 'en-US',
-    merchantsSummary: 'Amazon.com, Walmart, Best Buy, and trusted partner stores',
-    disclosureText: 'Product prices, discounts, and availability are subject to merchant updates on Amazon.com, Walmart, Best Buy, and verified partner stores.',
-    shopperAudience: 'smart shoppers in the United States',
-    newsletterSubtitle: 'Weekly handpicked value finds, practical buying guides, and honest comparisons for US homes and everyday life.',
-    trustBadges: [
-      { title: 'Zero Fabricated Reviews', subtitle: 'Authentic real-world testing' },
-      { title: 'USD Real-Time Pricing', subtitle: 'Fair price tracking' },
-      { title: 'Verified Buying Guides', subtitle: 'Clear consumer advice' },
-    ]
-  },
-  UK: {
-    code: 'UK',
-    name: 'United Kingdom',
-    currencySymbol: '£',
-    currencyCode: 'GBP',
-    flag: '🇬🇧',
-    locale: 'en-GB',
-    merchantsSummary: 'Amazon UK, Currys, Argos, and trusted partner stores',
-    disclosureText: 'Product prices, discounts, and availability are subject to merchant updates on Amazon UK, Currys, Argos, and verified partner stores.',
-    shopperAudience: 'smart shoppers across the United Kingdom',
-    newsletterSubtitle: 'Weekly handpicked value finds, practical buying guides, and honest comparisons for UK homes and everyday life.',
-    trustBadges: [
-      { title: 'Zero Fabricated Reviews', subtitle: 'Authentic real-world testing' },
-      { title: 'GBP Fair Pricing', subtitle: 'Fair price tracking' },
-      { title: 'Verified Buying Guides', subtitle: 'Clear consumer advice' },
-    ]
-  },
-  CA: {
-    code: 'CA',
-    name: 'Canada',
-    currencySymbol: 'C$',
-    currencyCode: 'CAD',
-    flag: '🇨🇦',
-    locale: 'en-CA',
-    merchantsSummary: 'Amazon Canada, Best Buy, Canadian Tire, and partner stores',
-    disclosureText: 'Product prices, discounts, and availability are subject to merchant updates on Amazon Canada, Best Buy, Canadian Tire, and verified partner stores.',
-    shopperAudience: 'smart shoppers across Canada',
-    newsletterSubtitle: 'Weekly handpicked value finds, practical buying guides, and honest comparisons for Canadian households and everyday life.',
-    trustBadges: [
-      { title: 'Zero Fabricated Reviews', subtitle: 'Authentic real-world testing' },
-      { title: 'CAD Verified Pricing', subtitle: 'Fair price tracking' },
-      { title: 'Verified Buying Guides', subtitle: 'Clear consumer advice' },
-    ]
-  }
+export {
+  COUNTRIES,
+  REGIONS_CONFIG,
+  type RegionConfig,
+  type CountryCode,
+  type RegionBudgetTier,
+  type RegionTrustBadge
 };
 
 interface AppContextType {
@@ -206,7 +132,7 @@ interface AppContextType {
   getAuthorById: (id: string) => Author | undefined;
 
   // Currency & Localization
-  formatPrice: (price: number) => string;
+  formatPrice: (price?: number | null) => string;
   getAffiliateUrl: (product: Product) => string;
 
   // Admin Auth & RBAC
@@ -245,7 +171,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
 // ... (in AppProvider)
 
-  const formatPrice = (price: number) => {
+  const formatPrice = (price?: number | null) => {
     return formatPriceUtil(price, selectedCountry);
   };
 
