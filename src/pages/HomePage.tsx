@@ -4,11 +4,9 @@ import { api } from '../services/api';
 import { db } from '../firebase/config';
 import { doc, setDoc } from 'firebase/firestore';
 import { products } from '../data/products';
-import { budgetTiers } from '../data/budgetTiers';
 import { problemCollections } from '../data/problemCollections';
 import { buyingGuides } from '../data/buyingGuides';
 import { comparisons } from '../data/comparisons';
-import { reviews } from '../data/reviews';
 import { articles } from '../data/articles';
 import { ProductCard } from '../components/ProductCard';
 import { CategoryPills } from '../components/CategoryPills';
@@ -17,12 +15,10 @@ import {
   Search,
   ArrowRight,
   Sparkles,
-  ShieldCheck,
   CheckCircle2,
   Scale,
   BookOpen,
   FileText,
-  Tag,
   Zap,
   TrendingUp,
   Mail,
@@ -123,7 +119,72 @@ export const HomePage: React.FC = () => {
         </div>
       </section>
 
-      {/* 2. EXPLORE CATEGORIES */}
+      {/* 2. LATEST ARTICLES & INSIGHTS (Prioritized immediately below search/hero area for blog focus) */}
+      <section className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+        <div className="flex items-end justify-between mb-3 sm:mb-5">
+          <div>
+            <div className="text-[10px] sm:text-xs font-bold text-blue-600 uppercase tracking-wider mb-0.5 flex items-center gap-1">
+              <FileText className="w-3.5 h-3.5 text-blue-600" />
+              <span>Editorial &amp; Consumer Advice</span>
+            </div>
+            <h2 className="text-lg sm:text-2xl font-bold text-slate-900">
+              Latest Articles &amp; Buying Insights
+            </h2>
+            <p className="text-[11px] sm:text-xs text-slate-500">
+              Read directly on NIDPIK: smart saving tips, expert guides &amp; honest recommendations.
+            </p>
+          </div>
+          <button
+            onClick={() => navigate('/articles')}
+            className="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1 shrink-0 cursor-pointer"
+          >
+            <span>All Articles</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-5">
+          {articles.slice(0, 3).map((art) => (
+            <div
+              key={art.id}
+              onClick={() => navigate(`/articles/${art.slug}`)}
+              className="nidpik-card rounded-xl sm:rounded-2xl p-3 sm:p-4 cursor-pointer group flex flex-col justify-between space-y-3 hover:shadow-md transition-shadow"
+            >
+              <div className="aspect-16/10 rounded-xl overflow-hidden bg-slate-100 relative">
+                <img
+                  src={art.image}
+                  alt={art.title}
+                  loading="lazy"
+                  className="w-full h-full object-cover group-hover:scale-104 transition-transform duration-300"
+                />
+              </div>
+
+              <div className="space-y-1.5 flex-1 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center gap-1.5 text-[10px] text-slate-500 mb-1 font-medium">
+                    <span className="text-blue-600 font-bold">{art.category}</span>
+                    <span>·</span>
+                    <span>{art.readingTime}</span>
+                  </div>
+                  <h3 className="text-xs sm:text-sm font-bold text-slate-900 group-hover:text-blue-600 transition-colors line-clamp-2 leading-snug">
+                    {art.title}
+                  </h3>
+                  <p className="text-[11px] text-slate-500 mt-1 line-clamp-2 leading-relaxed">
+                    {art.excerpt}
+                  </p>
+                </div>
+
+                <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-blue-600">
+                  <span>Read Article</span>
+                  <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* 3. EXPLORE CATEGORIES */}
       <section className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between mb-2 sm:mb-3">
           <div>
@@ -172,71 +233,6 @@ export const HomePage: React.FC = () => {
               </form>
             )}
           </div>
-        </div>
-      </section>
-
-      {/* 3. LATEST ARTICLES & INSIGHTS (Promoted to Top as requested for affiliate blog focus) */}
-      <section className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
-        <div className="flex items-end justify-between mb-3 sm:mb-5">
-          <div>
-            <div className="text-[10px] sm:text-xs font-bold text-blue-600 uppercase tracking-wider mb-0.5 flex items-center gap-1">
-              <FileText className="w-3 h-3 text-blue-600" />
-              Editorial &amp; Consumer Advice
-            </div>
-            <h2 className="text-lg sm:text-2xl font-bold text-slate-900">
-              Latest Articles &amp; Buying Insights
-            </h2>
-            <p className="text-[11px] sm:text-xs text-slate-500">
-              Read directly on NIDPIK: smart saving tips, expert guides &amp; honest recommendations.
-            </p>
-          </div>
-          <button
-            onClick={() => navigate('/articles')}
-            className="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1 shrink-0 cursor-pointer"
-          >
-            <span>All Articles</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-5">
-          {articles.slice(0, 3).map((art) => (
-            <div
-              key={art.id}
-              onClick={() => navigate(`/articles/${art.slug}`)}
-              className="nidpik-card rounded-xl sm:rounded-2xl p-3 sm:p-4 cursor-pointer group flex flex-col justify-between space-y-3"
-            >
-              <div className="aspect-16/10 rounded-xl overflow-hidden bg-slate-100 relative">
-                <img
-                  src={art.image}
-                  alt={art.title}
-                  loading="lazy"
-                  className="w-full h-full object-cover group-hover:scale-104 transition-transform duration-300"
-                />
-              </div>
-
-              <div className="space-y-1.5 flex-1 flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center gap-1.5 text-[10px] text-slate-500 mb-1 font-medium">
-                    <span className="text-blue-600 font-bold">{art.category}</span>
-                    <span>·</span>
-                    <span>{art.readingTime}</span>
-                  </div>
-                  <h3 className="text-xs sm:text-sm font-bold text-slate-900 group-hover:text-blue-600 transition-colors line-clamp-2 leading-snug">
-                    {art.title}
-                  </h3>
-                  <p className="text-[11px] text-slate-500 mt-1 line-clamp-2 leading-relaxed">
-                    {art.excerpt}
-                  </p>
-                </div>
-
-                <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-blue-600">
-                  <span>Read Article</span>
-                  <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
-                </div>
-              </div>
-            </div>
-          ))}
         </div>
       </section>
 
@@ -533,43 +529,6 @@ export const HomePage: React.FC = () => {
         </div>
       </section>
 
-      {/* 9. TRUST & EDITORIAL BANNER */}
-      <section className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
-        <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-7 border border-slate-200 shadow-2xs">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 text-left">
-            <div className="space-y-1.5">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
-                <ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5" />
-              </div>
-              <h3 className="text-xs sm:text-sm font-bold text-slate-900">Zero Fabricated Ratings</h3>
-              <p className="text-[11px] sm:text-xs text-slate-600 leading-relaxed">
-                We never invent fake star counts or false discount timers. Recommendations are grounded in actual specifications.
-              </p>
-            </div>
-
-            <div className="space-y-1.5">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5" />
-              </div>
-              <h3 className="text-xs sm:text-sm font-bold text-slate-900">Multi-Market Currencies</h3>
-              <p className="text-[11px] sm:text-xs text-slate-600 leading-relaxed">
-                Products and affiliate offers are verified across India, US, UK, and Canada with correct local currency formats.
-              </p>
-            </div>
-
-            <div className="space-y-1.5">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
-                <Tag className="w-4 h-4 sm:w-5 sm:h-5" />
-              </div>
-              <h3 className="text-xs sm:text-sm font-bold text-slate-900">Transparent Affiliate Links</h3>
-              <p className="text-[11px] sm:text-xs text-slate-600 leading-relaxed">
-                We earn a small commission on qualifying purchases at no extra cost to you, supporting our independent testing.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
       <SubscribeModal
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
@@ -577,3 +536,4 @@ export const HomePage: React.FC = () => {
     </div>
   );
 };
+

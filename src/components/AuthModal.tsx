@@ -135,17 +135,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                 </div>
               </div>
 
-              {/* Demo quick sign-in */}
-              <button
-                type="button"
-                onClick={() => {
-                  setEmail('joyfulfilms21@gmail.com');
-                  setPassword('demo1234');
-                }}
-                className="text-[11px] text-blue-600 hover:underline font-semibold block"
-              >
-                Use Quick Fill (joyfulfilms21@gmail.com)
-              </button>
 
               <button
                 type="submit"

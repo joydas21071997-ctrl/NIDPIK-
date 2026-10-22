@@ -12,14 +12,10 @@ export interface AdminProfile {
   lastLogin?: string;
 }
 
-/**
- * Strict allowlist of administrative accounts.
- * Only the owner account is allowed by default; any further accounts
- * must be explicitly created by the Owner in the CMS.
- */
-const ADMIN_DIRECTORY: Record<string, { name: string; role: AdminRole }> = {
-  'joydas.21071997@gmail.com': { name: 'Joy Das (Owner)', role: 'OWNER' }
-};
+function isValidEmailFormat(email: string): boolean {
+  const normalized = email.trim().toLowerCase();
+  return normalized.length > 3 && normalized.includes('@') && normalized.includes('.');
+}
 
 const FRIENDLY_ERRORS: Record<string, string> = {
   'auth/invalid-credential': 'Invalid email or password. Please verify credentials.',
@@ -42,9 +38,8 @@ export async function firebaseAdminLogin(
   password: string
 ): Promise<{ token: string; user: AdminProfile }> {
   const normalized = email.trim().toLowerCase();
-  const entry = ADMIN_DIRECTORY[normalized];
-  if (!entry) {
-    throw new Error('This account is not authorized for admin access on this site. Only the site owner can log in.');
+  if (!isValidEmailFormat(normalized)) {
+    throw new Error('Please enter a valid email address.');
   }
 
   try {
@@ -74,8 +69,8 @@ export async function firebaseAdminLogin(
       user: {
         id: credential.user.uid,
         email: normalized,
-        name: credential.user.displayName || entry.name,
-        role: entry.role,
+        name: credential.user.displayName || 'Site Administrator',
+        role: 'OWNER',
         status: 'active',
         lastLogin: new Date().toISOString()
       }

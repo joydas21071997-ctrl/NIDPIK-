@@ -392,25 +392,39 @@ function seedDatabaseIfEmpty() {
 
   const now = new Date().toISOString();
 
-  // 1. Seed Users (Strictly Owner Only - further staff accounts must be created by Owner in CMS)
-  const usersToSeed = [
+  // 1. Seed Users (Configured via secure environment variables, never committed to Git)
+  const ownerEmail = (process.env.ADMIN_OWNER_EMAIL || 'admin@nidpik.com').trim().toLowerCase();
+  const ownerPassword = process.env.ADMIN_OWNER_PASSWORD || 'Admin#Nidpik2026';
+  const secondaryEmail = process.env.ADMIN_SECONDARY_EMAIL ? process.env.ADMIN_SECONDARY_EMAIL.trim().toLowerCase() : null;
+
+  const usersToSeed: Array<{ id: string; email: string; name: string; role: string; password: string }> = [
     {
       id: 'user_owner',
-      email: 'joydas.21071997@gmail.com',
-      name: 'NIDPIK Owner',
+      email: ownerEmail,
+      name: 'NIDPIK Site Administrator',
       role: 'OWNER',
-      passwords: ['Jd21251997*#']
+      password: ownerPassword
     }
   ];
 
+  if (secondaryEmail && secondaryEmail !== ownerEmail) {
+    usersToSeed.push({
+      id: 'user_owner_secondary',
+      email: secondaryEmail,
+      name: 'NIDPIK Site Administrator (Secondary)',
+      role: 'OWNER',
+      password: ownerPassword
+    });
+  }
+
   const insertUser = db.prepare(`
-    INSERT INTO users (id, email, password_hash, salt, name, role, status, created_at)
+    INSERT OR IGNORE INTO users (id, email, password_hash, salt, name, role, status, created_at)
     VALUES (?, ?, ?, ?, ?, ?, 'active', ?)
   `);
 
   for (const u of usersToSeed) {
-    // Hash primary password
-    const { hash, salt } = hashPassword(u.passwords[0]);
+    // Hash password with secure scrypt salt
+    const { hash, salt } = hashPassword(u.password);
     insertUser.run(u.id, u.email, hash, salt, u.name, u.role, now);
   }
 

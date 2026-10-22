@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Logo } from './Logo';
 import { useApp, COUNTRIES, REGIONS_CONFIG, type RegionConfig } from '../context/AppContext';
-import { ShieldCheck, Sparkles, CheckCircle2, ArrowRight, KeyRound, Globe, Mail } from 'lucide-react';
+import { ShieldCheck, Sparkles, CheckCircle2, ArrowRight, Globe, Mail } from 'lucide-react';
 import { categories } from '../data/categories';
 import { api } from '../services/api';
 import { db } from '../firebase/config';
@@ -415,20 +415,14 @@ export const Footer: React.FC<FooterProps> = ({ regionConfig: propRegionConfig, 
               </div>
             </div>
 
-            <div className="flex items-center gap-4 text-slate-500 text-[11px]">
+            <div className="flex items-center gap-3 text-slate-500 text-[11px]">
               <div>
                 © 2026 NIDPIK. All rights reserved.
               </div>
               <span className="text-slate-700">·</span>
-              <button
-                type="button"
-                onClick={() => navigate('/admin')}
-                className="text-slate-600 hover:text-slate-400 p-1 rounded-md transition-colors cursor-pointer"
-                aria-label="Admin Access"
-                title="Admin Portal"
-              >
-                <KeyRound className="w-3.5 h-3.5" />
-              </button>
+              <span className="text-slate-500 hidden sm:inline">
+                Independent Editorial Testing &amp; Research
+              </span>
             </div>
           </div>
         </div>
