@@ -32,17 +32,8 @@ jobs:
           node-version: 22
           cache: ${{ steps.lock.outputs.present == 'true' && 'npm' || '' }}
 
-      # npm ci is the reproducible path, but it hard-fails when the lock file
-      # is missing or out of sync with package.json. Fall back to npm install
-      # so a bad lock file never blocks a deploy.
       - name: Install Dependencies
-        run: |
-          if [ -f package-lock.json ] && npm ci --no-audit --no-fund; then
-            echo "Installed exact dependency tree from package-lock.json"
-          else
-            echo "::warning::npm ci unavailable or package-lock.json is out of sync with package.json — falling back to npm install"
-            npm install --no-audit --no-fund
-          fi
+        run: npm install --no-audit --no-fund
 
       - name: Build Production Frontend
         run: npm run build
