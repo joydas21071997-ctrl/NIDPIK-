@@ -29,7 +29,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: 22
           cache: ${{ steps.lock.outputs.present == 'true' && 'npm' || '' }}
 
       # npm ci is the reproducible path, but it hard-fails when the lock file
