@@ -38,6 +38,8 @@ export interface Product {
   merchant: Merchant;
   affiliateUrl?: string; // backwards compatibility fallback
   affiliateUrls?: Record<string, string>; // e.g., { IN: "...", US: "...", UK: "...", CA: "..." }
+  meeshoUrl?: string; // Dedicated Meesho India affiliate/product link
+  meeshoPrice?: number; // Optional Meesho deal price
   lastUpdated: string;
   status: 'active' | 'archived' | 'PUBLISHED' | 'DRAFT' | 'ARCHIVED' | string;
   ratingDisplay?: string; // e.g. "Editor Tested - 4.6/5 Value"

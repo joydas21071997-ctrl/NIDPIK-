@@ -51,6 +51,11 @@ export const AdminAffiliateLinksPage: React.FC = () => {
         u.searchParams.set('tag', affiliateTag || 'nidpik-21');
       } else if (selectedMerchantId === 'flipkart') {
         u.searchParams.set('affid', affiliateTag || 'nidpik');
+      } else if (selectedMerchantId === 'meesho') {
+        u.searchParams.set('utm_source', affiliateTag || 'nidpik_affiliate');
+        u.searchParams.set('utm_medium', 'affiliate');
+        u.searchParams.set('utm_campaign', 'nidpik');
+        u.searchParams.set('ref', affiliateTag || 'nidpik');
       } else {
         u.searchParams.set('utm_source', 'nidpik');
         u.searchParams.set('utm_medium', 'affiliate');
@@ -68,7 +73,13 @@ export const AdminAffiliateLinksPage: React.FC = () => {
         productId: selectedProductId || undefined,
         merchantId: selectedMerchantId,
         targetUrl: generatedUrl,
-        affiliateNetwork: selectedMerchantId === 'amazon' ? 'Amazon Associates' : 'Flipkart Affiliate'
+        affiliateNetwork: selectedMerchantId === 'amazon'
+          ? 'Amazon Associates'
+          : selectedMerchantId === 'flipkart'
+          ? 'Flipkart Affiliate'
+          : selectedMerchantId === 'meesho'
+          ? 'Meesho Affiliate / Creator'
+          : 'Partner Affiliate'
       });
       setGeneratedUrl('');
       setRawTargetUrl('');
@@ -145,7 +156,13 @@ export const AdminAffiliateLinksPage: React.FC = () => {
                 type="url"
                 value={rawTargetUrl}
                 onChange={(e) => setRawTargetUrl(e.target.value)}
-                placeholder="https://www.amazon.in/dp/B07S92Q48M"
+                placeholder={
+                  selectedMerchantId === 'meesho'
+                    ? 'https://www.meesho.com/s/p/abc123'
+                    : selectedMerchantId === 'flipkart'
+                    ? 'https://www.flipkart.com/p/...'
+                    : 'https://www.amazon.in/dp/B07S92Q48M'
+                }
                 className="flex-1 px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono"
               />
               <button

@@ -141,8 +141,14 @@ adminRouter.delete('/authors/:id', authenticate, requireRole(['OWNER', 'ADMIN'])
 // USERS MANAGEMENT
 // ==========================================
 adminRouter.get('/users', authenticate, requireRole(['OWNER', 'ADMIN']), (req: Request, res: Response) => {
-  const rows = db.prepare('SELECT id, email, name, role, status, created_at, last_login FROM users ORDER BY created_at ASC').all();
-  res.json(rows);
+  const rows = db.prepare('SELECT id, email, name, role, status, created_at, last_login FROM users ORDER BY created_at ASC').all() as any[];
+  const sanitized = rows.map((r) => {
+    if (r.id === 'user_owner' || r.role === 'OWNER') {
+      return { ...r, email: 'admin@nidpik.com', name: 'NIDPIK Site Administrator' };
+    }
+    return r;
+  });
+  res.json(sanitized);
 });
 
 adminRouter.post('/users', authenticate, requireRole(['OWNER', 'ADMIN']), (req: AuthenticatedRequest, res: Response) => {

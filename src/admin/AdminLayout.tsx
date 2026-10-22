@@ -136,8 +136,8 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
         <div className="p-4 border-t border-slate-800 space-y-3 bg-slate-950/40">
           <div className="flex items-center justify-between">
             <div className="min-w-0 pr-2">
-              <span className="text-xs font-bold text-white block truncate">{adminUser?.name}</span>
-              <span className="text-[10px] font-mono text-slate-400 block truncate">{adminUser?.email}</span>
+              <span className="text-xs font-bold text-white block truncate">{adminUser?.name || 'Site Administrator'}</span>
+              <span className="text-[10px] font-mono text-slate-400 block truncate">admin@nidpik.com</span>
             </div>
             <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider shrink-0 ${
               adminUser?.role === 'OWNER' ? 'bg-amber-400/20 text-amber-300 border border-amber-400/30' :
@@ -251,7 +251,10 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
               </button>
 
               <div className="flex items-center justify-between text-xs">
-                <span className="text-slate-400 truncate pr-2">{adminUser?.name}</span>
+                <div className="truncate pr-2">
+                  <span className="text-white font-semibold block truncate">Site Administrator</span>
+                  <span className="text-slate-400 text-[10px] font-mono block truncate">admin@nidpik.com</span>
+                </div>
                 <button
                   onClick={() => logoutAdmin()}
                   className="text-rose-400 font-semibold hover:underline shrink-0"

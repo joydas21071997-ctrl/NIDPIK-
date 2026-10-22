@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Logo } from './Logo';
 import { useApp, COUNTRIES, REGIONS_CONFIG, type RegionConfig } from '../context/AppContext';
-import { ShieldCheck, Sparkles, CheckCircle2, ArrowRight, Globe, Mail } from 'lucide-react';
+import { ShieldCheck, Sparkles, CheckCircle2, ArrowRight, Globe, Mail, Lock } from 'lucide-react';
 import { categories } from '../data/categories';
 import { api } from '../services/api';
 import { db } from '../firebase/config';
@@ -423,6 +423,16 @@ export const Footer: React.FC<FooterProps> = ({ regionConfig: propRegionConfig, 
               <span className="text-slate-500 hidden sm:inline">
                 Independent Editorial Testing &amp; Research
               </span>
+              <span className="text-slate-700">·</span>
+              <button
+                type="button"
+                onClick={() => navigate('/admin')}
+                className="text-slate-600 hover:text-blue-400 transition-colors p-1 rounded cursor-pointer"
+                title="Admin CMS Portal"
+                aria-label="Admin Portal"
+              >
+                <Lock className="w-3.5 h-3.5" />
+              </button>
             </div>
           </div>
         </div>

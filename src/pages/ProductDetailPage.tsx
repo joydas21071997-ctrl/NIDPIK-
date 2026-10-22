@@ -306,6 +306,25 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ slug }) =>
                     <ExternalLink className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
                   </button>
 
+                  {product.meeshoUrl && (
+                    <button
+                      onClick={() => {
+                        api.analytics.trackClick({
+                          productId: product.id,
+                          merchantId: 'meesho',
+                          sourcePage: 'product_detail',
+                          ctaType: 'meesho_buy'
+                        });
+                        window.open(product.meeshoUrl, '_blank', 'noopener,noreferrer');
+                      }}
+                      className="py-3 px-5 bg-[#84226b] hover:bg-[#6c1b57] text-white font-bold text-sm rounded-xl transition-all shadow-md flex items-center justify-center gap-2 group cursor-pointer"
+                      title="Buy from Meesho (India)"
+                    >
+                      <span>Buy on Meesho {product.meeshoPrice ? `(₹${product.meeshoPrice})` : ''}</span>
+                      <ExternalLink className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                    </button>
+                  )}
+
                   <button
                     onClick={() => {
                       if (inCompare) {

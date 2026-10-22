@@ -16,6 +16,13 @@ export const merchants: Merchant[] = [
     affiliateBaseUrl: 'https://www.flipkart.com/p/'
   },
   {
+    id: 'meesho',
+    name: 'Meesho',
+    logoText: 'Meesho',
+    badgeColor: '#84226b',
+    affiliateBaseUrl: 'https://www.meesho.com/'
+  },
+  {
     id: 'croma',
     name: 'Croma',
     logoText: 'Croma',

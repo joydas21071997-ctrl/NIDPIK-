@@ -179,6 +179,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const getAffiliateUrl = (product: Product): string => {
     if (!product) return '';
+    // If India region and product has dedicated meeshoUrl, prioritize or offer option
+    if (selectedCountry === 'IN' && product.meeshoUrl && product.meeshoUrl.trim().length > 0) {
+      return product.meeshoUrl.trim();
+    }
+    if (product.affiliateUrls && product.affiliateUrls.MEESHO && selectedCountry === 'IN') {
+      return product.affiliateUrls.MEESHO.trim();
+    }
     // 1. Check country-specific URL in affiliateUrls map
     if (product.affiliateUrls && product.affiliateUrls[selectedCountry]) {
       const url = product.affiliateUrls[selectedCountry];
@@ -244,13 +251,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [settings, setSettings] = useState<Record<string, any>>({});
   const [isLoadingData, setIsLoadingData] = useState<boolean>(true);
 
-  // Admin Authentication State
+  // Admin Authentication State (Strict session lock)
   const [adminToken, setAdminToken] = useState<string | null>(() => {
-    return localStorage.getItem('nidpik_admin_token') || null;
+    try {
+      // Security cleanup: clear legacy persistent tokens from localStorage
+      localStorage.removeItem('nidpik_admin_token');
+      localStorage.removeItem('nidpik_admin_user');
+      return sessionStorage.getItem('nidpik_admin_token') || null;
+    } catch {
+      return null;
+    }
   });
   const [adminUser, setAdminUser] = useState<AdminUser | null>(() => {
     try {
-      const stored = localStorage.getItem('nidpik_admin_user');
+      const stored = sessionStorage.getItem('nidpik_admin_user');
       return stored ? JSON.parse(stored) : null;
     } catch {
       return null;
@@ -361,15 +375,26 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (cancelled) return;
       setAdminToken(null);
       setAdminUser(null);
-      localStorage.removeItem('nidpik_admin_token');
-      localStorage.removeItem('nidpik_admin_user');
+      try {
+        sessionStorage.removeItem('nidpik_admin_token');
+        sessionStorage.removeItem('nidpik_admin_user');
+        localStorage.removeItem('nidpik_admin_token');
+        localStorage.removeItem('nidpik_admin_user');
+      } catch {}
     };
 
     api.auth.me()
       .then((res) => {
         if (!cancelled && res.user) {
-          setAdminUser(res.user);
-          localStorage.setItem('nidpik_admin_user', JSON.stringify(res.user));
+          const safeUser: AdminUser = {
+            ...res.user,
+            email: (res.user.role === 'OWNER' || res.user.id === 'user_owner') ? 'admin@nidpik.com' : (res.user.email || 'admin@nidpik.com'),
+            name: 'NIDPIK Site Administrator'
+          };
+          setAdminUser(safeUser);
+          try {
+            sessionStorage.setItem('nidpik_admin_user', JSON.stringify(safeUser));
+          } catch {}
         }
       })
       .catch(async (err) => {
@@ -528,10 +553,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Admin Auth Handlers
   const applyAdminSession = (token: string, user: AdminUser) => {
+    const safeUser: AdminUser = {
+      ...user,
+      email: (user.role === 'OWNER' || user.id === 'user_owner') ? 'admin@nidpik.com' : (user.email || 'admin@nidpik.com'),
+      name: 'NIDPIK Site Administrator'
+    };
     setAdminToken(token);
-    setAdminUser(user);
-    localStorage.setItem('nidpik_admin_token', token);
-    localStorage.setItem('nidpik_admin_user', JSON.stringify(user));
+    setAdminUser(safeUser);
+    try {
+      sessionStorage.setItem('nidpik_admin_token', token);
+      sessionStorage.setItem('nidpik_admin_user', JSON.stringify(safeUser));
+      localStorage.removeItem('nidpik_admin_token');
+      localStorage.removeItem('nidpik_admin_user');
+    } catch {}
   };
 
   const loginAdmin = async (credentials: { email: string; password: string }) => {
@@ -563,7 +597,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const logoutAdmin = async () => {
-    await firebaseAdminLogout();
+    await firebaseAdminLogout().catch(() => {});
     try {
       await api.auth.logout();
     } catch {
@@ -571,8 +605,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
     setAdminToken(null);
     setAdminUser(null);
-    localStorage.removeItem('nidpik_admin_token');
-    localStorage.removeItem('nidpik_admin_user');
+    try {
+      sessionStorage.removeItem('nidpik_admin_token');
+      sessionStorage.removeItem('nidpik_admin_user');
+      localStorage.removeItem('nidpik_admin_token');
+      localStorage.removeItem('nidpik_admin_user');
+    } catch {}
     navigate('/admin/login');
   };
 

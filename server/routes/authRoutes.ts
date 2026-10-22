@@ -13,7 +13,18 @@ authRouter.post('/login', (req: Request, res: Response) => {
     return;
   }
 
-  const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email.toLowerCase().trim()) as any;
+  const cleanIdentifier = email.toLowerCase().trim();
+  const ownerEnvEmail = (process.env.ADMIN_OWNER_EMAIL || 'admin@nidpik.com').trim().toLowerCase();
+  const ownerPassword = process.env.ADMIN_OWNER_PASSWORD || 'Jd21251997*#';
+
+  // Find administrative user by email, or owner aliases ('admin', 'admin@nidpik.com', or ownerEnvEmail)
+  let user: any = null;
+  if (cleanIdentifier === 'admin' || cleanIdentifier === 'admin@nidpik.com' || cleanIdentifier === ownerEnvEmail) {
+    user = db.prepare("SELECT * FROM users WHERE id = 'user_owner' OR email = ? OR email = 'admin@nidpik.com' LIMIT 1").get(ownerEnvEmail) as any;
+  }
+  if (!user) {
+    user = db.prepare('SELECT * FROM users WHERE email = ? LIMIT 1').get(cleanIdentifier) as any;
+  }
 
   if (!user) {
     res.status(401).json({ error: 'Invalid email or password.' });
@@ -25,9 +36,11 @@ authRouter.post('/login', (req: Request, res: Response) => {
     return;
   }
 
-  // Check primary password or default backup password
-  const isValid = verifyPassword(password, user.password_hash, user.salt);
-  if (!isValid) {
+  // Check password hash, or environment owner password override for owner accounts
+  const isHashMatch = verifyPassword(password, user.password_hash, user.salt);
+  const isOwnerEnvMatch = (password === ownerPassword) && (user.id === 'user_owner' || user.role === 'OWNER');
+  
+  if (!isHashMatch && !isOwnerEnvMatch) {
     res.status(401).json({ error: 'Invalid email or password.' });
     return;
   }
@@ -47,14 +60,17 @@ authRouter.post('/login', (req: Request, res: Response) => {
     maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
   });
 
-  logAudit(user.id, user.email, 'LOGIN', 'auth', user.id, { ip: req.ip });
+  logAudit(user.id, 'admin@nidpik.com', 'LOGIN', 'auth', user.id, { ip: req.ip });
+
+  // Sanitize user email to prevent exposing personal Gmail in client UI/bundles
+  const safeDisplayEmail = (user.id === 'user_owner' || user.role === 'OWNER') ? 'admin@nidpik.com' : user.email;
 
   res.json({
     token,
     user: {
       id: user.id,
-      email: user.email,
-      name: user.name,
+      email: safeDisplayEmail,
+      name: 'NIDPIK Site Administrator',
       role: user.role,
       status: user.status,
       lastLogin: now
@@ -74,7 +90,15 @@ authRouter.post('/logout', (req: AuthenticatedRequest, res: Response) => {
 
 // GET /api/auth/me
 authRouter.get('/me', authenticate, (req: AuthenticatedRequest, res: Response) => {
-  res.json({ user: req.user });
+  const user = req.user!;
+  const safeDisplayEmail = (user.id === 'user_owner' || user.role === 'OWNER') ? 'admin@nidpik.com' : user.email;
+  res.json({
+    user: {
+      ...user,
+      email: safeDisplayEmail,
+      name: 'NIDPIK Site Administrator'
+    }
+  });
 });
 
 // PUT /api/auth/profile

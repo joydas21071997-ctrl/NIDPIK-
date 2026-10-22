@@ -27,7 +27,9 @@ const getHeaders = (isFormData: boolean = false): HeadersInit => {
   if (!isFormData) {
     headers['Content-Type'] = 'application/json';
   }
-  const token = localStorage.getItem('nidpik_admin_token');
+  const token = typeof window !== 'undefined'
+    ? (sessionStorage.getItem('nidpik_admin_token') || localStorage.getItem('nidpik_admin_token'))
+    : null;
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
   }
@@ -430,7 +432,9 @@ export const api = {
     uploadLogo: async (file: File) => {
       const formData = new FormData();
       formData.append('file', file);
-      const token = localStorage.getItem('nidpik_admin_token');
+      const token = typeof window !== 'undefined'
+        ? (sessionStorage.getItem('nidpik_admin_token') || localStorage.getItem('nidpik_admin_token'))
+        : null;
       const res = await fetch('/api/admin/upload-logo', {
         method: 'POST',
         headers: token ? { Authorization: `Bearer ${token}` } : {},

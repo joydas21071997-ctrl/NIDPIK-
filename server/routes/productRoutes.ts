@@ -32,6 +32,9 @@ export function formatProductRow(row: any) {
     cons: JSON.parse(row.cons_json || '[]'),
     merchant: typeof row.merchant_json === 'string' ? JSON.parse(row.merchant_json) : row.merchant_json,
     affiliateUrl: row.affiliate_url,
+    affiliateUrls: row.affiliate_urls_json ? JSON.parse(row.affiliate_urls_json) : { IN: row.affiliate_url },
+    meeshoUrl: row.meesho_url || (row.affiliate_urls_json ? (() => { try { return JSON.parse(row.affiliate_urls_json).MEESHO; } catch { return undefined; } })() : undefined),
+    meeshoPrice: row.meesho_price !== null && row.meesho_price !== undefined ? Number(row.meesho_price) : undefined,
     affiliateNetwork: row.affiliate_network || 'Amazon Associates',
     lastUpdated: row.last_updated,
     status: row.status,
@@ -133,14 +136,14 @@ productRouter.post('/', authenticate, requireRole(['OWNER', 'ADMIN', 'EDITOR']),
       id, slug, name, brand, category, category_slug, subcategory, price, old_price,
       currency, badge, image, gallery_json, short_description, quick_verdict,
       best_for, not_ideal_for, features_json, specifications_json, pros_json,
-      cons_json, merchant_json, affiliate_url, affiliate_network, last_updated,
+      cons_json, merchant_json, affiliate_url, affiliate_urls_json, meesho_url, meesho_price, affiliate_network, last_updated,
       status, rating_display, in_stock, budget_tier, problem_tags_json,
       seo_title, seo_description, canonical_url, og_image, created_at, updated_at
     ) VALUES (
       ?, ?, ?, ?, ?, ?, ?, ?, ?,
       ?, ?, ?, ?, ?, ?,
       ?, ?, ?, ?, ?,
-      ?, ?, ?, ?, ?,
+      ?, ?, ?, ?, ?, ?, ?, ?,
       ?, ?, ?, ?, ?,
       ?, ?, ?, ?, ?, ?
     )
@@ -154,6 +157,10 @@ productRouter.post('/', authenticate, requireRole(['OWNER', 'ADMIN', 'EDITOR']),
     badgeColor: '#FF9900',
     affiliateBaseUrl: 'https://www.amazon.in/dp/'
   };
+
+  const affiliateUrlsObj = body.affiliateUrls || (body.affiliateUrl ? { IN: body.affiliateUrl } : {});
+  const meeshoLink = body.meeshoUrl || affiliateUrlsObj.MEESHO || null;
+  const meeshoPriceVal = body.meeshoPrice !== undefined && body.meeshoPrice !== null ? Number(body.meeshoPrice) : null;
 
   stmt.run(
     id,
@@ -179,6 +186,9 @@ productRouter.post('/', authenticate, requireRole(['OWNER', 'ADMIN', 'EDITOR']),
     JSON.stringify(body.cons || []),
     JSON.stringify(merchant),
     body.affiliateUrl || 'https://www.amazon.in',
+    JSON.stringify(affiliateUrlsObj),
+    meeshoLink,
+    meeshoPriceVal,
     body.affiliateNetwork || 'Amazon Associates',
     body.lastUpdated || 'October 2026',
     status,
@@ -220,6 +230,14 @@ productRouter.put('/:id', authenticate, requireRole(['OWNER', 'ADMIN', 'EDITOR']
     existing.merchant_json ? JSON.parse(existing.merchant_json) : { name: 'Amazon India' }
   );
 
+  const affiliateUrlsObj = body.affiliateUrls !== undefined ? body.affiliateUrls : (
+    existing.affiliate_urls_json ? JSON.parse(existing.affiliate_urls_json) : { IN: existing.affiliate_url }
+  );
+  const meeshoLink = body.meeshoUrl !== undefined ? body.meeshoUrl : (
+    existing.meesho_url || (affiliateUrlsObj ? affiliateUrlsObj.MEESHO : null)
+  );
+  const meeshoPriceVal = body.meeshoPrice !== undefined ? (body.meeshoPrice ? Number(body.meeshoPrice) : null) : existing.meesho_price;
+
   const stmt = db.prepare(`
     UPDATE products SET
       slug = ?,
@@ -244,6 +262,9 @@ productRouter.put('/:id', authenticate, requireRole(['OWNER', 'ADMIN', 'EDITOR']
       cons_json = ?,
       merchant_json = ?,
       affiliate_url = ?,
+      affiliate_urls_json = ?,
+      meesho_url = ?,
+      meesho_price = ?,
       affiliate_network = ?,
       last_updated = ?,
       status = ?,
@@ -282,6 +303,9 @@ productRouter.put('/:id', authenticate, requireRole(['OWNER', 'ADMIN', 'EDITOR']
     body.cons !== undefined ? JSON.stringify(body.cons) : existing.cons_json,
     JSON.stringify(merchant),
     body.affiliateUrl !== undefined ? body.affiliateUrl : existing.affiliate_url,
+    JSON.stringify(affiliateUrlsObj),
+    meeshoLink,
+    meeshoPriceVal,
     body.affiliateNetwork !== undefined ? body.affiliateNetwork : existing.affiliate_network,
     body.lastUpdated || existing.last_updated,
     body.status !== undefined ? body.status : existing.status,

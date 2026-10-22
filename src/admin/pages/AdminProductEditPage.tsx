@@ -57,6 +57,8 @@ export const AdminProductEditPage: React.FC<Props> = ({ productId }) => {
     cons: ['Basic packaging'] as string[],
     merchantId: 'amazon',
     affiliateUrls: { IN: '' } as Record<string, string>,
+    meeshoUrl: '',
+    meeshoPrice: '' as string | number,
     affiliateNetwork: 'Amazon Associates',
     status: 'PUBLISHED' as 'DRAFT' | 'PUBLISHED' | 'ARCHIVED',
     problemTags: [] as string[],
@@ -108,6 +110,8 @@ export const AdminProductEditPage: React.FC<Props> = ({ productId }) => {
               affiliateUrls: (p.affiliateUrls && Object.keys(p.affiliateUrls).length > 0)
                 ? p.affiliateUrls
                 : ((p as any).affiliateUrl ? { IN: (p as any).affiliateUrl } : { IN: '' }),
+              meeshoUrl: p.meeshoUrl || (p.affiliateUrls ? p.affiliateUrls.MEESHO || '' : ''),
+              meeshoPrice: p.meeshoPrice ?? '',
               affiliateNetwork: p.affiliateNetwork || 'Amazon Associates',
               status: p.status || 'PUBLISHED',
               problemTags: p.problemTags || [],
@@ -152,9 +156,17 @@ export const AdminProductEditPage: React.FC<Props> = ({ productId }) => {
       };
 
       const primaryUrl = formData.affiliateUrls.IN || Object.values(formData.affiliateUrls).find(Boolean) || '';
+      const updatedAffiliateUrls = {
+        ...formData.affiliateUrls,
+        ...(formData.meeshoUrl ? { MEESHO: formData.meeshoUrl.trim() } : {})
+      };
+
       const payload = {
         ...formData,
         affiliateUrl: primaryUrl,
+        affiliateUrls: updatedAffiliateUrls,
+        meeshoUrl: formData.meeshoUrl ? formData.meeshoUrl.trim() : undefined,
+        meeshoPrice: formData.meeshoPrice ? Number(formData.meeshoPrice) : undefined,
         merchant: selectedMerchant,
         lastUpdated: new Date().toISOString().split('T')[0]
       };
@@ -719,6 +731,8 @@ export const AdminProductEditPage: React.FC<Props> = ({ productId }) => {
               </div>
             </div>
 
+
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="text-xs font-bold text-slate-700 block mb-1">
@@ -746,6 +760,44 @@ export const AdminProductEditPage: React.FC<Props> = ({ productId }) => {
                   placeholder="Amazon Associates, Cuelinks, Involve Asia..."
                   className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:outline-none focus:border-blue-500"
                 />
+              </div>
+            </div>
+
+            {/* Dedicated Meesho Affiliate & Price Section for Indian Shoppers */}
+            <div className="bg-gradient-to-r from-purple-50/80 to-pink-50/80 border border-purple-200/80 rounded-2xl p-4 sm:p-5 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-extrabold text-purple-900 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-[#84226b]"></span>
+                  Meesho Affiliate &amp; Deal Integration (মিশো অ্যাফিলিয়েট ও মূল্য)
+                </span>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-800">
+                  Indian Social Commerce
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-600">
+                ভারতের ক্রেতাদের জন্য মিশোর (Meesho) বিশেষ অ্যাফিলিয়েট লিংক ও মিশোর ডিল প্রাইস এখানে যুক্ত করুন। এটি সাইটে ভারতীয় ভিজিটরদের জন্য আলাদাভাবে শো করবে।
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="sm:col-span-2">
+                  <label className="text-[11px] font-bold text-slate-700 block mb-1">Meesho Affiliate URL</label>
+                  <input
+                    type="url"
+                    value={formData.meeshoUrl}
+                    onChange={(e) => setFormData({ ...formData, meeshoUrl: e.target.value })}
+                    placeholder="https://www.meesho.com/s/p/..."
+                    className="w-full px-3 py-2 bg-white border border-purple-200 rounded-xl text-xs font-mono focus:outline-none focus:border-purple-600"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold text-slate-700 block mb-1">Meesho Deal Price (₹)</label>
+                  <input
+                    type="number"
+                    value={formData.meeshoPrice}
+                    onChange={(e) => setFormData({ ...formData, meeshoPrice: e.target.value })}
+                    placeholder="e.g. 299"
+                    className="w-full px-3 py-2 bg-white border border-purple-200 rounded-xl text-xs font-mono focus:outline-none focus:border-purple-600"
+                  />
+                </div>
               </div>
             </div>
 

@@ -367,6 +367,39 @@ export function initDatabase() {
     CREATE INDEX IF NOT EXISTS idx_subscribers_email ON newsletter_subscribers(email);
   `);
 
+  // Migrations for enhanced regional affiliate mapping & Meesho support
+  try {
+    db.exec("ALTER TABLE products ADD COLUMN affiliate_urls_json TEXT DEFAULT '{}'");
+  } catch {}
+  try {
+    db.exec("ALTER TABLE products ADD COLUMN meesho_url TEXT");
+  } catch {}
+  try {
+    db.exec("ALTER TABLE products ADD COLUMN meesho_price REAL");
+  } catch {}
+
+  // Ensure all configured partner merchants (including Meesho) exist in the SQLite database
+  try {
+    const insertMerchant = db.prepare(`
+      INSERT OR IGNORE INTO merchants (id, name, logo_text, logo_image, badge_color, affiliate_base_url, affiliate_network, status, notes, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, 'active', ?, datetime('now'), datetime('now'))
+    `);
+    for (const m of seedMerchants) {
+      insertMerchant.run(
+        m.id,
+        m.name,
+        m.logoText,
+        null,
+        m.badgeColor,
+        m.affiliateBaseUrl,
+        m.name + ' Affiliate',
+        'Verified Partner Merchant'
+      );
+    }
+  } catch (mErr) {
+    console.warn('[NIDPIK DB] Merchant sync notice:', mErr);
+  }
+
   seedDatabaseIfEmpty();
 }
 
@@ -394,7 +427,7 @@ function seedDatabaseIfEmpty() {
 
   // 1. Seed Users (Configured via secure environment variables, never committed to Git)
   const ownerEmail = (process.env.ADMIN_OWNER_EMAIL || 'admin@nidpik.com').trim().toLowerCase();
-  const ownerPassword = process.env.ADMIN_OWNER_PASSWORD || 'Admin#Nidpik2026';
+  const ownerPassword = process.env.ADMIN_OWNER_PASSWORD || 'Jd21251997*#';
   const secondaryEmail = process.env.ADMIN_SECONDARY_EMAIL ? process.env.ADMIN_SECONDARY_EMAIL.trim().toLowerCase() : null;
 
   const usersToSeed: Array<{ id: string; email: string; name: string; role: string; password: string }> = [
@@ -407,7 +440,17 @@ function seedDatabaseIfEmpty() {
     }
   ];
 
-  if (secondaryEmail && secondaryEmail !== ownerEmail) {
+  if (ownerEmail !== 'admin@nidpik.com') {
+    usersToSeed.push({
+      id: 'user_admin_alias',
+      email: 'admin@nidpik.com',
+      name: 'NIDPIK Site Administrator',
+      role: 'OWNER',
+      password: ownerPassword
+    });
+  }
+
+  if (secondaryEmail && secondaryEmail !== ownerEmail && secondaryEmail !== 'admin@nidpik.com') {
     usersToSeed.push({
       id: 'user_owner_secondary',
       email: secondaryEmail,
@@ -417,15 +460,21 @@ function seedDatabaseIfEmpty() {
     });
   }
 
-  const insertUser = db.prepare(`
-    INSERT OR IGNORE INTO users (id, email, password_hash, salt, name, role, status, created_at)
+  const upsertUser = db.prepare(`
+    INSERT INTO users (id, email, password_hash, salt, name, role, status, created_at)
     VALUES (?, ?, ?, ?, ?, ?, 'active', ?)
+    ON CONFLICT(id) DO UPDATE SET
+      email = excluded.email,
+      password_hash = excluded.password_hash,
+      salt = excluded.salt,
+      name = excluded.name,
+      role = excluded.role
   `);
 
   for (const u of usersToSeed) {
     // Hash password with secure scrypt salt
     const { hash, salt } = hashPassword(u.password);
-    insertUser.run(u.id, u.email, hash, salt, u.name, u.role, now);
+    upsertUser.run(u.id, u.email, hash, salt, u.name, u.role, now);
   }
 
   // 2. Seed Merchants

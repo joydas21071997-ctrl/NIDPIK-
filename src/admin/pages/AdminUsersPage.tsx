@@ -148,7 +148,9 @@ export const AdminUsersPage: React.FC = () => {
                                 <span className="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded font-bold">You</span>
                               )}
                             </div>
-                            <span className="text-[11px] text-slate-500 font-mono block">{u.email}</span>
+                            <span className="text-[11px] text-slate-500 font-mono block">
+                              {u.role === 'OWNER' || u.id === 'user_owner' ? 'admin@nidpik.com' : u.email}
+                            </span>
                           </div>
                         </div>
                       </td>

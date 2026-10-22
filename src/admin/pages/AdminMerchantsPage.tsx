@@ -186,6 +186,56 @@ export const AdminMerchantsPage: React.FC = () => {
               </div>
 
               <form onSubmit={handleSave} className="space-y-4">
+                {/* Quick Presets */}
+                {!editingMerchant && (
+                  <div className="p-2.5 bg-slate-50 border border-slate-200/80 rounded-xl space-y-1.5">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+                      Quick Templates (এক ক্লিকে প্রিসেট সেট করুন)
+                    </span>
+                    <div className="flex flex-wrap gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setForm({
+                          id: 'meesho',
+                          name: 'Meesho',
+                          logoText: 'Meesho',
+                          badgeColor: '#84226b',
+                          affiliateBaseUrl: 'https://www.meesho.com/'
+                        })}
+                        className="px-2.5 py-1 text-[11px] font-bold bg-[#84226b]/10 text-[#84226b] border border-[#84226b]/30 rounded-lg hover:bg-[#84226b] hover:text-white transition-colors"
+                      >
+                        + Meesho (মিশো)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setForm({
+                          id: 'amazon',
+                          name: 'Amazon India',
+                          logoText: 'Amazon',
+                          badgeColor: '#FF9900',
+                          affiliateBaseUrl: 'https://www.amazon.in/dp/'
+                        })}
+                        className="px-2.5 py-1 text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-300 rounded-lg hover:bg-amber-500 hover:text-white transition-colors"
+                      >
+                        + Amazon India
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setForm({
+                          id: 'flipkart',
+                          name: 'Flipkart',
+                          logoText: 'Flipkart',
+                          badgeColor: '#2874F0',
+                          affiliateBaseUrl: 'https://www.flipkart.com/p/'
+                        })}
+                        className="px-2.5 py-1 text-[11px] font-bold bg-blue-50 text-blue-800 border border-blue-300 rounded-lg hover:bg-blue-600 hover:text-white transition-colors"
+                      >
+                        + Flipkart
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 <div>
                   <label className="text-xs font-bold text-slate-700 block mb-1">Merchant Name *</label>
                   <input
@@ -201,7 +251,7 @@ export const AdminMerchantsPage: React.FC = () => {
                         logoText: form.logoText || name
                       });
                     }}
-                    placeholder="e.g. Amazon India"
+                    placeholder="e.g. Meesho or Amazon India"
                     className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium"
                   />
                 </div>
