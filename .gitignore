@@ -13,3 +13,4 @@ nidpik.sqlite-shm
 nidpik.sqlite-wal
 nidpik.sqlite
 *.sqlite
+.firebase/
