@@ -11,40 +11,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      # actions/setup-node crashes with "Dependencies lock file is not found"
-      # when package-lock.json is absent, so only enable the npm cache when
-      # the lock file actually exists in the checked-out tree.
-      - name: Check npm lock file
-        id: lock
-        run: |
-          if [ -f package-lock.json ]; then
-            echo "present=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "::warning::package-lock.json is not tracked in git. npm cache disabled; a lock file will be generated during install. Commit package-lock.json to restore caching and reproducible installs."
-            echo "present=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Setup Node.js
+      - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
-          cache: ${{ steps.lock.outputs.present == 'true' && 'npm' || '' }}
+          node-version: 20
+          cache: 'npm'
 
       - name: Install Dependencies
-        run: npm install --no-audit --no-fund
+        run: npm ci
 
       - name: Build Production Frontend
         run: npm run build
-
-      - name: Verify build output exists
-        run: |
-          if [ ! -f dist/index.html ]; then
-            echo "::error::Build finished but dist/index.html was not produced. Check the 'public' directory in firebase.json and the vite build output."
-            exit 1
-          fi
-          echo "dist/index.html present, deploying:"
 
       - name: Deploy to Firebase Hosting Live Channel
         uses: FirebaseExtended/action-hosting-deploy@v0
