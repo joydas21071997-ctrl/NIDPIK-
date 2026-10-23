@@ -117,16 +117,16 @@ export const AdminAnalyticsPage: React.FC = () => {
               <span className="text-xs font-bold text-slate-400">Share</span>
             </div>
 
-            {!data?.topMerchants || data.topMerchants.length === 0 ? (
+            {!data?.byMerchant || data.byMerchant.length === 0 ? (
               <div className="py-12 text-center text-xs text-slate-400">
                 No merchant clicks recorded yet.
               </div>
             ) : (
               <div className="space-y-3">
-                {data.topMerchants.map((m: any, i: number) => (
+                {data.byMerchant.map((m: any, i: number) => (
                   <div key={i} className="flex items-center justify-between gap-3 text-xs">
-                    <span className="font-bold text-slate-800 uppercase">{m.merchantId || 'Direct'}</span>
-                    <span className="font-mono font-bold text-blue-600">{m.clicks} clicks</span>
+                    <span className="font-bold text-slate-800 uppercase">{m.merchant_id || 'Direct'}</span>
+                    <span className="font-mono font-bold text-blue-600">{m.count} clicks</span>
                   </div>
                 ))}
               </div>

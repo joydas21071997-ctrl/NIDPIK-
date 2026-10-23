@@ -19,7 +19,7 @@ import { aiRouter } from './server/routes/aiRoutes';
 
 async function startServer() {
   const app = express();
-  const PORT = Number(process.env.PORT) || 3000;
+  const PORT = 3000;
 
   // Initialize SQLite database & seed initial data if needed
   initDatabase();
