@@ -3,14 +3,14 @@ FROM node:22-alpine AS builder
 
 WORKDIR /app
 
-# Install dependencies
+# Copy dependency manifests
 COPY package*.json ./
 RUN npm ci
 
-# Copy source files
+# Copy source code
 COPY . .
 
-# Build static assets for production distribution
+# Build Vite frontend assets & bundle Express server to dist/server.js
 RUN npm run build
 
 # Production runtime stage
@@ -25,14 +25,10 @@ ENV PORT=8080
 COPY package*.json ./
 RUN npm ci --only=production
 
-# Copy application artifacts
+# Copy compiled dist and static public directory
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/server ./server
-COPY --from=builder /app/src ./src
-COPY --from=builder /app/server.ts ./server.ts
-COPY --from=builder /app/tsconfig.json ./tsconfig.json
 COPY --from=builder /app/public ./public
 
 EXPOSE 8080
 
-CMD ["npx", "tsx", "server.ts"]
+CMD ["node", "dist/server.js"]
