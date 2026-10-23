@@ -14,9 +14,9 @@ import {
 } from 'lucide-react';
 
 export const AdminMerchantsPage: React.FC = () => {
-  const { refreshPublicData } = useApp();
-  const [merchants, setMerchants] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { refreshPublicData, merchants: appMerchants } = useApp();
+  const [merchants, setMerchants] = useState<any[]>(Array.isArray(appMerchants) ? appMerchants : []);
+  const [loading, setLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingMerchant, setEditingMerchant] = useState<any | null>(null);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
@@ -33,9 +33,16 @@ export const AdminMerchantsPage: React.FC = () => {
     try {
       setLoading(true);
       const data = await api.merchants.getAll();
-      setMerchants(data);
+      if (Array.isArray(data)) {
+        setMerchants(data);
+      } else if (Array.isArray(appMerchants) && appMerchants.length > 0) {
+        setMerchants(appMerchants);
+      }
     } catch (err: any) {
-      console.error(err);
+      console.warn('API merchants fetch note:', err);
+      if (Array.isArray(appMerchants) && appMerchants.length > 0) {
+        setMerchants(appMerchants);
+      }
     } finally {
       setLoading(false);
     }
@@ -44,6 +51,10 @@ export const AdminMerchantsPage: React.FC = () => {
   useEffect(() => {
     loadMerchants();
   }, []);
+
+  const safeMerchants = Array.isArray(merchants) && merchants.length > 0
+    ? merchants
+    : (Array.isArray(appMerchants) ? appMerchants : []);
 
   const openCreate = () => {
     setEditingMerchant(null);
@@ -126,8 +137,18 @@ export const AdminMerchantsPage: React.FC = () => {
           </div>
         )}
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-          {merchants.map((m) => (
+        {loading && safeMerchants.length === 0 ? (
+          <div className="py-24 text-center text-xs text-slate-400 bg-white rounded-2xl border border-slate-200">
+            Loading merchants...
+          </div>
+        ) : safeMerchants.length === 0 ? (
+          <div className="py-20 text-center space-y-2 bg-white rounded-2xl border border-slate-200">
+            <Store className="w-8 h-8 text-slate-300 mx-auto" />
+            <p className="text-sm font-semibold text-slate-700">No merchants found</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            {safeMerchants.map((m) => (
             <div key={m.id} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs space-y-3 flex flex-col justify-between">
               <div>
                 <div className="flex items-center justify-between">
@@ -171,6 +192,7 @@ export const AdminMerchantsPage: React.FC = () => {
             </div>
           ))}
         </div>
+      )}
 
         {/* MODAL */}
         {modalOpen && (

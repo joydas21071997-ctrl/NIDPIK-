@@ -17,8 +17,8 @@ import {
 } from 'lucide-react';
 
 export const AdminGuidesPage: React.FC = () => {
-  const { refreshPublicData, products, authors } = useApp();
-  const [guides, setGuides] = useState<any[]>([]);
+  const { refreshPublicData, products, authors, buyingGuides: appGuides } = useApp();
+  const [guides, setGuides] = useState<any[]>(appGuides || []);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingGuide, setEditingGuide] = useState<any | null>(null);
@@ -45,9 +45,17 @@ export const AdminGuidesPage: React.FC = () => {
     try {
       setLoading(true);
       const data = await api.guides.getAll();
-      setGuides(data);
+      if (Array.isArray(data)) {
+        setGuides(data);
+      } else if (appGuides && appGuides.length > 0) {
+        setGuides(appGuides);
+      }
     } catch (err: any) {
-      console.error(err);
+      if (appGuides && appGuides.length > 0) {
+        setGuides(appGuides);
+      } else {
+        console.error(err);
+      }
     } finally {
       setLoading(false);
     }
@@ -56,6 +64,14 @@ export const AdminGuidesPage: React.FC = () => {
   useEffect(() => {
     loadGuides();
   }, []);
+
+  useEffect(() => {
+    if (appGuides && appGuides.length > 0 && guides.length === 0) {
+      setGuides(appGuides);
+    }
+  }, [appGuides]);
+
+  const safeGuides = Array.isArray(guides) ? guides : (appGuides || []);
 
   const openCreateModal = () => {
     setEditingGuide(null);
@@ -165,14 +181,14 @@ export const AdminGuidesPage: React.FC = () => {
         <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
           {loading ? (
             <div className="py-24 text-center text-xs text-slate-400">Loading guides...</div>
-          ) : guides.length === 0 ? (
+          ) : safeGuides.length === 0 ? (
             <div className="py-20 text-center space-y-2">
               <BookOpen className="w-8 h-8 text-slate-300 mx-auto" />
               <p className="text-sm font-semibold text-slate-700">No buying guides found</p>
             </div>
           ) : (
             <div className="divide-y divide-slate-100">
-              {guides.map((g) => (
+              {safeGuides.map((g) => (
                 <div key={g.id} className="p-5 flex items-center justify-between gap-4 hover:bg-slate-50/70 transition-colors">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">

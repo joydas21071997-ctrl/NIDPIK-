@@ -1,6 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
 import crypto from 'crypto';
-import { db, verifyPassword, hashPassword } from './db';
+import { eq } from 'drizzle-orm';
+import { db } from '../src/db/index';
+import * as schema from '../src/db/schema';
+import { verifyPassword, hashPassword } from './crypto';
 
 export interface AuthUser {
   id: string;
@@ -14,75 +17,95 @@ export interface AuthenticatedRequest extends Request {
   user?: AuthUser;
 }
 
-export function createSession(userId: string): { token: string; expiresAt: string } {
+export async function createSession(userId: string): Promise<{ token: string; expiresAt: string }> {
   const token = crypto.randomBytes(32).toString('hex');
   // 7 days expiration
   const expiresDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
   const expiresAt = expiresDate.toISOString();
   const sessionId = 'sess_' + crypto.randomUUID();
 
-  const insertSession = db.prepare(`
-    INSERT INTO sessions (id, user_id, token, expires_at, created_at)
-    VALUES (?, ?, ?, ?, ?)
-  `);
-  insertSession.run(sessionId, userId, token, expiresAt, new Date().toISOString());
+  await db.insert(schema.sessions).values({
+    id: sessionId,
+    userId,
+    token,
+    expiresAt,
+    createdAt: new Date().toISOString()
+  });
 
   return { token, expiresAt };
 }
 
-export function deleteSession(token: string) {
-  const delStmt = db.prepare('DELETE FROM sessions WHERE token = ?');
-  delStmt.run(token);
+export async function deleteSession(token: string): Promise<void> {
+  try {
+    await db.delete(schema.sessions).where(eq(schema.sessions.token, token));
+  } catch (err) {
+    console.error('[DELETE SESSION ERROR]', err);
+  }
 }
 
-export function authenticate(req: AuthenticatedRequest, res: Response, next: NextFunction) {
-  // Check Authorization Bearer or Cookie
-  let token: string | undefined;
-  const authHeader = req.headers.authorization;
-  if (authHeader && authHeader.startsWith('Bearer ')) {
-    token = authHeader.substring(7).trim();
-  } else if (req.cookies && req.cookies.admin_token) {
-    token = req.cookies.admin_token;
+export async function authenticate(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+  try {
+    // Check Authorization Bearer or Cookie
+    let token: string | undefined;
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.substring(7).trim();
+    } else if (req.cookies && req.cookies.admin_token) {
+      token = req.cookies.admin_token;
+    }
+
+    if (!token) {
+      res.status(401).json({ error: 'Unauthorized. Authentication token is missing.' });
+      return;
+    }
+
+    const rows = await db
+      .select({
+        userId: schema.sessions.userId,
+        expiresAt: schema.sessions.expiresAt,
+        id: schema.users.id,
+        email: schema.users.email,
+        name: schema.users.name,
+        role: schema.users.role,
+        status: schema.users.status
+      })
+      .from(schema.sessions)
+      .innerJoin(schema.users, eq(schema.sessions.userId, schema.users.id))
+      .where(eq(schema.sessions.token, token))
+      .limit(1);
+
+    const sessionRow = rows[0];
+
+    if (!sessionRow) {
+      res.status(401).json({ error: 'Unauthorized. Invalid or expired session token.' });
+      return;
+    }
+
+    // Check expiration
+    if (new Date(sessionRow.expiresAt) < new Date()) {
+      await deleteSession(token);
+      res.status(401).json({ error: 'Unauthorized. Session expired. Please log in again.' });
+      return;
+    }
+
+    if (sessionRow.status === 'disabled') {
+      res.status(403).json({ error: 'Account disabled. Please contact the administrator.' });
+      return;
+    }
+
+    req.user = {
+      id: sessionRow.id,
+      email: sessionRow.email,
+      name: sessionRow.name,
+      role: sessionRow.role as any,
+      status: sessionRow.status as any
+    };
+
+    next();
+  } catch (err: any) {
+    console.error('[AUTHENTICATE ERROR]', err);
+    res.status(500).json({ error: 'Internal authentication error' });
   }
-
-  if (!token) {
-    res.status(401).json({ error: 'Unauthorized. Authentication token is missing.' });
-    return;
-  }
-
-  const sessionRow = db.prepare(`
-    SELECT s.user_id, s.expires_at, u.id, u.email, u.name, u.role, u.status
-    FROM sessions s
-    JOIN users u ON s.user_id = u.id
-    WHERE s.token = ?
-  `).get(token) as any;
-
-  if (!sessionRow) {
-    res.status(401).json({ error: 'Unauthorized. Invalid or expired session token.' });
-    return;
-  }
-
-  // Check expiration
-  if (new Date(sessionRow.expires_at) < new Date()) {
-    deleteSession(token);
-    res.status(401).json({ error: 'Unauthorized. Session expired. Please log in again.' });
-    return;
-  }
-
-  if (sessionRow.status === 'disabled') {
-    res.status(403).json({ error: 'Account disabled. Please contact the administrator.' });
-    return;
-  }
-
-  req.user = {
-    id: sessionRow.id,
-    email: sessionRow.email,
-    name: sessionRow.name,
-    role: sessionRow.role,
-    status: sessionRow.status
-  };
-
-  next();
 }
 
 export function requireRole(allowedRoles: Array<'OWNER' | 'ADMIN' | 'EDITOR'>) {
@@ -103,7 +126,7 @@ export function requireRole(allowedRoles: Array<'OWNER' | 'ADMIN' | 'EDITOR'>) {
   };
 }
 
-export function logAudit(
+export async function logAudit(
   userId: string,
   userEmail: string,
   action: string,
@@ -113,12 +136,18 @@ export function logAudit(
 ) {
   try {
     const id = 'audit_' + crypto.randomUUID();
-    const stmt = db.prepare(`
-      INSERT INTO audit_logs (id, user_id, user_email, action, entity_type, entity_id, details_json, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-    stmt.run(id, userId, userEmail, action, entityType, entityId, JSON.stringify(details), new Date().toISOString());
+    await db.insert(schema.auditLogs).values({
+      id,
+      userId,
+      userEmail,
+      action,
+      entityType,
+      entityId,
+      detailsJson: JSON.stringify(details),
+      createdAt: new Date().toISOString()
+    });
   } catch (err) {
     console.error('[AUDIT LOG ERROR]', err);
   }
 }
+

@@ -1,5 +1,7 @@
 import { Router, Request, Response } from 'express';
-import { db } from '../db';
+import { eq, or, desc, asc } from 'drizzle-orm';
+import { db } from '../../src/db/index';
+import * as schema from '../../src/db/schema';
 import { authenticate, AuthenticatedRequest, requireRole, logAudit } from '../auth';
 import crypto from 'crypto';
 
@@ -10,152 +12,172 @@ export const contentRouter = Router();
 // ==========================================
 export function formatArticleRow(row: any) {
   if (!row) return null;
+  const contentJson = row.contentJson ?? row.content_json ?? '[]';
+  const tagsJson = row.tagsJson ?? row.tags_json ?? '[]';
+  const recommendedProductIdsJson = row.recommendedProductIdsJson ?? row.recommended_product_ids_json ?? '[]';
+
   return {
     id: row.id,
     slug: row.slug,
     title: row.title,
     category: row.category,
-    categorySlug: row.category_slug,
+    categorySlug: row.categorySlug ?? row.category_slug,
     excerpt: row.excerpt,
-    authorId: row.author_id,
-    publishedAt: row.published_at,
-    updatedAt: row.updated_at,
-    readingTime: row.reading_time,
+    authorId: row.authorId ?? row.author_id,
+    publishedAt: row.publishedAt ?? row.published_at,
+    updatedAt: row.updatedAt ?? row.updated_at,
+    readingTime: row.readingTime ?? row.reading_time,
     image: row.image,
-    content: JSON.parse(row.content_json || '[]'),
-    tags: JSON.parse(row.tags_json || '[]'),
-    recommendedProductIds: JSON.parse(row.recommended_product_ids_json || '[]'),
+    content: typeof contentJson === 'string' ? JSON.parse(contentJson) : contentJson,
+    tags: typeof tagsJson === 'string' ? JSON.parse(tagsJson) : tagsJson,
+    recommendedProductIds: typeof recommendedProductIdsJson === 'string' ? JSON.parse(recommendedProductIdsJson) : recommendedProductIdsJson,
     status: row.status,
-    seoTitle: row.seo_title,
-    seoDescription: row.seo_description,
-    canonicalUrl: row.canonical_url,
-    ogImage: row.og_image,
-    createdAt: row.created_at
+    seoTitle: row.seoTitle ?? row.seo_title,
+    seoDescription: row.seoDescription ?? row.seo_description,
+    canonicalUrl: row.canonicalUrl ?? row.canonical_url,
+    ogImage: row.ogImage ?? row.og_image,
+    createdAt: row.createdAt ?? row.created_at
   };
 }
 
-contentRouter.get('/articles', (req: Request, res: Response) => {
-  const { status } = req.query;
-  let query = 'SELECT * FROM articles';
-  const params: any[] = [];
-  if (status && status !== 'all') {
-    query += ' WHERE status = ?';
-    params.push(status);
+contentRouter.get('/articles', async (req: Request, res: Response) => {
+  try {
+    const { status } = req.query;
+    let queryBuilder = db.select().from(schema.articles);
+
+    if (status && status !== 'all') {
+      queryBuilder = queryBuilder.where(eq(schema.articles.status, String(status))) as any;
+    }
+
+    const rows = await queryBuilder.orderBy(desc(schema.articles.createdAt));
+    res.json(rows.map(formatArticleRow));
+  } catch (err: any) {
+    console.error('[GET ARTICLES ERROR]', err);
+    res.status(500).json({ error: 'Failed to fetch articles' });
   }
-  query += ' ORDER BY created_at DESC';
-  const rows = db.prepare(query).all(...params);
-  res.json(rows.map(formatArticleRow));
 });
 
-contentRouter.get('/articles/:idOrSlug', (req: Request, res: Response) => {
-  const p = req.params.idOrSlug;
-  const row = db.prepare('SELECT * FROM articles WHERE id = ? OR slug = ?').get(p, p);
-  if (!row) {
-    res.status(404).json({ error: 'Article not found' });
-    return;
+contentRouter.get('/articles/:idOrSlug', async (req: Request, res: Response) => {
+  try {
+    const p = req.params.idOrSlug;
+    const rows = await db
+      .select()
+      .from(schema.articles)
+      .where(or(eq(schema.articles.id, p), eq(schema.articles.slug, p)))
+      .limit(1);
+
+    const row = rows[0];
+    if (!row) {
+      res.status(404).json({ error: 'Article not found' });
+      return;
+    }
+    res.json(formatArticleRow(row));
+  } catch (err: any) {
+    console.error('[GET ARTICLE ERROR]', err);
+    res.status(500).json({ error: 'Failed to fetch article' });
   }
-  res.json(formatArticleRow(row));
 });
 
-contentRouter.post('/articles', authenticate, requireRole(['OWNER', 'ADMIN', 'EDITOR']), (req: AuthenticatedRequest, res: Response) => {
-  const body = req.body;
-  const user = req.user!;
+contentRouter.post('/articles', authenticate, requireRole(['OWNER', 'ADMIN', 'EDITOR']), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const body = req.body;
+    const user = req.user!;
 
-  if (!body.title || !body.category) {
-    res.status(400).json({ error: 'Title and category are required' });
-    return;
+    if (!body.title || !body.category) {
+      res.status(400).json({ error: 'Title and category are required' });
+      return;
+    }
+
+    const id = body.id || 'art_' + crypto.randomUUID().slice(0, 8);
+    const slug = (body.slug || body.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')).trim();
+    const now = new Date().toISOString();
+
+    await db.insert(schema.articles).values({
+      id,
+      slug,
+      title: body.title,
+      category: body.category,
+      categorySlug: body.categorySlug || body.category.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+      excerpt: body.excerpt || '',
+      authorId: body.authorId || 'rahul-sharma',
+      publishedAt: body.publishedAt || now,
+      updatedAt: now,
+      readingTime: body.readingTime || '5 min read',
+      image: body.image || '/src/assets/images/nidpik_hero_showcase_1790936631391.jpg',
+      contentJson: JSON.stringify(Array.isArray(body.content) ? body.content : (body.content ? body.content.split('\n\n') : [])),
+      tagsJson: JSON.stringify(body.tags || []),
+      recommendedProductIdsJson: JSON.stringify(body.recommendedProductIds || []),
+      status: body.status || 'DRAFT',
+      seoTitle: body.seoTitle || `${body.title} | NIDPIK`,
+      seoDescription: body.seoDescription || body.excerpt || '',
+      canonicalUrl: body.canonicalUrl || `https://nidpik.in/articles/${slug}`,
+      ogImage: body.ogImage || body.image || '',
+      createdAt: now
+    });
+
+    await logAudit(user.id, user.email, 'ARTICLE_CREATED', 'article', id, { title: body.title });
+    const createdRows = await db.select().from(schema.articles).where(eq(schema.articles.id, id)).limit(1);
+    res.status(201).json(formatArticleRow(createdRows[0]));
+  } catch (err: any) {
+    console.error('[CREATE ARTICLE ERROR]', err);
+    res.status(500).json({ error: 'Failed to create article' });
   }
-
-  const id = body.id || 'art_' + crypto.randomUUID().slice(0, 8);
-  const slug = (body.slug || body.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')).trim();
-  const now = new Date().toISOString();
-
-  db.prepare(`
-    INSERT INTO articles (
-      id, slug, title, category, category_slug, excerpt, author_id, published_at,
-      updated_at, reading_time, image, content_json, tags_json,
-      recommended_product_ids_json, status, seo_title, seo_description,
-      canonical_url, og_image, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(
-    id,
-    slug,
-    body.title,
-    body.category,
-    body.categorySlug || body.category.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-    body.excerpt || '',
-    body.authorId || 'rahul-sharma',
-    body.publishedAt || now,
-    now,
-    body.readingTime || '5 min read',
-    body.image || '/src/assets/images/nidpik_hero_showcase_1790936631391.jpg',
-    JSON.stringify(Array.isArray(body.content) ? body.content : (body.content ? body.content.split('\n\n') : [])),
-    JSON.stringify(body.tags || []),
-    JSON.stringify(body.recommendedProductIds || []),
-    body.status || 'DRAFT',
-    body.seoTitle || `${body.title} | NIDPIK`,
-    body.seoDescription || body.excerpt || '',
-    body.canonicalUrl || `https://nidpik.in/articles/${slug}`,
-    body.ogImage || body.image || '',
-    now
-  );
-
-  logAudit(user.id, user.email, 'ARTICLE_CREATED', 'article', id, { title: body.title });
-  const created = db.prepare('SELECT * FROM articles WHERE id = ?').get(id);
-  res.status(201).json(formatArticleRow(created));
 });
 
-contentRouter.put('/articles/:id', authenticate, requireRole(['OWNER', 'ADMIN', 'EDITOR']), (req: AuthenticatedRequest, res: Response) => {
-  const { id } = req.params;
-  const body = req.body;
-  const user = req.user!;
+contentRouter.put('/articles/:id', authenticate, requireRole(['OWNER', 'ADMIN', 'EDITOR']), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const body = req.body;
+    const user = req.user!;
 
-  const existing = db.prepare('SELECT * FROM articles WHERE id = ?').get(id) as any;
-  if (!existing) {
-    res.status(404).json({ error: 'Article not found' });
-    return;
+    const existingRows = await db.select().from(schema.articles).where(eq(schema.articles.id, id)).limit(1);
+    const existing = existingRows[0];
+    if (!existing) {
+      res.status(404).json({ error: 'Article not found' });
+      return;
+    }
+
+    const now = new Date().toISOString();
+    await db.update(schema.articles).set({
+      slug: body.slug !== undefined ? body.slug : existing.slug,
+      title: body.title !== undefined ? body.title : existing.title,
+      category: body.category !== undefined ? body.category : existing.category,
+      categorySlug: body.categorySlug !== undefined ? body.categorySlug : existing.categorySlug,
+      excerpt: body.excerpt !== undefined ? body.excerpt : existing.excerpt,
+      authorId: body.authorId !== undefined ? body.authorId : existing.authorId,
+      updatedAt: now,
+      readingTime: body.readingTime !== undefined ? body.readingTime : existing.readingTime,
+      image: body.image !== undefined ? body.image : existing.image,
+      contentJson: body.content !== undefined ? JSON.stringify(Array.isArray(body.content) ? body.content : body.content.split('\n\n')) : existing.contentJson,
+      tagsJson: body.tags !== undefined ? JSON.stringify(body.tags) : existing.tagsJson,
+      recommendedProductIdsJson: body.recommendedProductIds !== undefined ? JSON.stringify(body.recommendedProductIds) : existing.recommendedProductIdsJson,
+      status: body.status !== undefined ? body.status : existing.status,
+      seoTitle: body.seoTitle !== undefined ? body.seoTitle : existing.seoTitle,
+      seoDescription: body.seoDescription !== undefined ? body.seoDescription : existing.seoDescription,
+      canonicalUrl: body.canonicalUrl !== undefined ? body.canonicalUrl : existing.canonicalUrl,
+      ogImage: body.ogImage !== undefined ? body.ogImage : existing.ogImage
+    }).where(eq(schema.articles.id, id));
+
+    await logAudit(user.id, user.email, 'ARTICLE_UPDATED', 'article', id, { title: body.title || existing.title });
+    const updatedRows = await db.select().from(schema.articles).where(eq(schema.articles.id, id)).limit(1);
+    res.json(formatArticleRow(updatedRows[0]));
+  } catch (err: any) {
+    console.error('[UPDATE ARTICLE ERROR]', err);
+    res.status(500).json({ error: 'Failed to update article' });
   }
-
-  const now = new Date().toISOString();
-  db.prepare(`
-    UPDATE articles SET
-      slug = ?, title = ?, category = ?, category_slug = ?, excerpt = ?, author_id = ?,
-      updated_at = ?, reading_time = ?, image = ?, content_json = ?, tags_json = ?,
-      recommended_product_ids_json = ?, status = ?, seo_title = ?, seo_description = ?,
-      canonical_url = ?, og_image = ?
-    WHERE id = ?
-  `).run(
-    body.slug !== undefined ? body.slug : existing.slug,
-    body.title !== undefined ? body.title : existing.title,
-    body.category !== undefined ? body.category : existing.category,
-    body.categorySlug !== undefined ? body.categorySlug : existing.category_slug,
-    body.excerpt !== undefined ? body.excerpt : existing.excerpt,
-    body.authorId !== undefined ? body.authorId : existing.author_id,
-    now,
-    body.readingTime !== undefined ? body.readingTime : existing.reading_time,
-    body.image !== undefined ? body.image : existing.image,
-    body.content !== undefined ? JSON.stringify(Array.isArray(body.content) ? body.content : body.content.split('\n\n')) : existing.content_json,
-    body.tags !== undefined ? JSON.stringify(body.tags) : existing.tags_json,
-    body.recommendedProductIds !== undefined ? JSON.stringify(body.recommendedProductIds) : existing.recommended_product_ids_json,
-    body.status !== undefined ? body.status : existing.status,
-    body.seoTitle !== undefined ? body.seoTitle : existing.seo_title,
-    body.seoDescription !== undefined ? body.seoDescription : existing.seo_description,
-    body.canonicalUrl !== undefined ? body.canonicalUrl : existing.canonical_url,
-    body.ogImage !== undefined ? body.ogImage : existing.og_image,
-    id
-  );
-
-  logAudit(user.id, user.email, 'ARTICLE_UPDATED', 'article', id, { title: body.title || existing.title });
-  const updated = db.prepare('SELECT * FROM articles WHERE id = ?').get(id);
-  res.json(formatArticleRow(updated));
 });
 
-contentRouter.delete('/articles/:id', authenticate, requireRole(['OWNER', 'ADMIN']), (req: AuthenticatedRequest, res: Response) => {
-  const { id } = req.params;
-  const user = req.user!;
-  db.prepare('DELETE FROM articles WHERE id = ?').run(id);
-  logAudit(user.id, user.email, 'ARTICLE_DELETED', 'article', id);
-  res.json({ success: true });
+contentRouter.delete('/articles/:id', authenticate, requireRole(['OWNER', 'ADMIN']), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const user = req.user!;
+    await db.delete(schema.articles).where(eq(schema.articles.id, id));
+    await logAudit(user.id, user.email, 'ARTICLE_DELETED', 'article', id);
+    res.json({ success: true });
+  } catch (err: any) {
+    console.error('[DELETE ARTICLE ERROR]', err);
+    res.status(500).json({ error: 'Failed to delete article' });
+  }
 });
 
 // ==========================================
@@ -163,148 +185,169 @@ contentRouter.delete('/articles/:id', authenticate, requireRole(['OWNER', 'ADMIN
 // ==========================================
 export function formatGuideRow(row: any) {
   if (!row) return null;
+  const featuredProductIdsJson = row.featuredProductIdsJson ?? row.featured_product_ids_json ?? '[]';
+  const whatToLookForJson = row.whatToLookForJson ?? row.what_to_look_for_json ?? '[]';
+  const faqsJson = row.faqsJson ?? row.faqs_json ?? '[]';
+
   return {
     id: row.id,
     slug: row.slug,
     title: row.title,
     category: row.category,
-    categorySlug: row.category_slug,
+    categorySlug: row.categorySlug ?? row.category_slug,
     subtitle: row.subtitle,
-    quickAnswer: row.quick_answer,
-    authorId: row.author_id,
-    publishedAt: row.published_at,
-    updatedAt: row.updated_at,
-    readingTime: row.reading_time,
-    featuredProductIds: JSON.parse(row.featured_product_ids_json || '[]'),
-    budgetRange: row.budget_range,
-    whatToLookFor: JSON.parse(row.what_to_look_for_json || '[]'),
-    whoShouldBuy: row.who_should_buy,
-    whoShouldSkip: row.who_should_skip,
-    faqs: JSON.parse(row.faqs_json || '[]'),
+    quickAnswer: row.quickAnswer ?? row.quick_answer,
+    authorId: row.authorId ?? row.author_id,
+    publishedAt: row.publishedAt ?? row.published_at,
+    updatedAt: row.updatedAt ?? row.updated_at,
+    readingTime: row.readingTime ?? row.reading_time,
+    featuredProductIds: typeof featuredProductIdsJson === 'string' ? JSON.parse(featuredProductIdsJson) : featuredProductIdsJson,
+    budgetRange: row.budgetRange ?? row.budget_range,
+    whatToLookFor: typeof whatToLookForJson === 'string' ? JSON.parse(whatToLookForJson) : whatToLookForJson,
+    whoShouldBuy: row.whoShouldBuy ?? row.who_should_buy,
+    whoShouldSkip: row.whoShouldSkip ?? row.who_should_skip,
+    faqs: typeof faqsJson === 'string' ? JSON.parse(faqsJson) : faqsJson,
     status: row.status,
-    seoTitle: row.seo_title,
-    seoDescription: row.seo_description,
-    canonicalUrl: row.canonical_url,
-    ogImage: row.og_image,
-    createdAt: row.created_at
+    seoTitle: row.seoTitle ?? row.seo_title,
+    seoDescription: row.seoDescription ?? row.seo_description,
+    canonicalUrl: row.canonicalUrl ?? row.canonical_url,
+    ogImage: row.ogImage ?? row.og_image,
+    createdAt: row.createdAt ?? row.created_at
   };
 }
 
-contentRouter.get('/guides', (req: Request, res: Response) => {
-  const rows = db.prepare('SELECT * FROM buying_guides ORDER BY created_at DESC').all();
-  res.json(rows.map(formatGuideRow));
-});
-
-contentRouter.get('/guides/:idOrSlug', (req: Request, res: Response) => {
-  const p = req.params.idOrSlug;
-  const row = db.prepare('SELECT * FROM buying_guides WHERE id = ? OR slug = ?').get(p, p);
-  if (!row) {
-    res.status(404).json({ error: 'Guide not found' });
-    return;
+contentRouter.get('/guides', async (req: Request, res: Response) => {
+  try {
+    const rows = await db.select().from(schema.buyingGuides).orderBy(desc(schema.buyingGuides.createdAt));
+    res.json(rows.map(formatGuideRow));
+  } catch (err: any) {
+    console.error('[GET GUIDES ERROR]', err);
+    res.status(500).json({ error: 'Failed to fetch guides' });
   }
-  res.json(formatGuideRow(row));
 });
 
-contentRouter.post('/guides', authenticate, requireRole(['OWNER', 'ADMIN', 'EDITOR']), (req: AuthenticatedRequest, res: Response) => {
-  const body = req.body;
-  const user = req.user!;
+contentRouter.get('/guides/:idOrSlug', async (req: Request, res: Response) => {
+  try {
+    const p = req.params.idOrSlug;
+    const rows = await db
+      .select()
+      .from(schema.buyingGuides)
+      .where(or(eq(schema.buyingGuides.id, p), eq(schema.buyingGuides.slug, p)))
+      .limit(1);
 
-  const id = body.id || 'guide_' + crypto.randomUUID().slice(0, 8);
-  const slug = (body.slug || body.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')).trim();
-  const now = new Date().toISOString();
-
-  db.prepare(`
-    INSERT INTO buying_guides (
-      id, slug, title, category, category_slug, subtitle, quick_answer,
-      author_id, published_at, updated_at, reading_time, featured_product_ids_json,
-      budget_range, what_to_look_for_json, who_should_buy, who_should_skip,
-      faqs_json, status, seo_title, seo_description, canonical_url, og_image, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(
-    id,
-    slug,
-    body.title,
-    body.category,
-    body.categorySlug || body.category.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-    body.subtitle || '',
-    body.quickAnswer || '',
-    body.authorId || 'rahul-sharma',
-    now,
-    now,
-    body.readingTime || '6 min read',
-    JSON.stringify(body.featuredProductIds || []),
-    body.budgetRange || 'Under ₹2,000',
-    JSON.stringify(body.whatToLookFor || []),
-    body.whoShouldBuy || '',
-    body.whoShouldSkip || '',
-    JSON.stringify(body.faqs || []),
-    body.status || 'DRAFT',
-    body.seoTitle || `${body.title} | NIDPIK Guide`,
-    body.seoDescription || body.subtitle || '',
-    body.canonicalUrl || `https://nidpik.in/buying-guides/${slug}`,
-    body.ogImage || null,
-    now
-  );
-
-  logAudit(user.id, user.email, 'GUIDE_CREATED', 'guide', id, { title: body.title });
-  const created = db.prepare('SELECT * FROM buying_guides WHERE id = ?').get(id);
-  res.status(201).json(formatGuideRow(created));
-});
-
-contentRouter.put('/guides/:id', authenticate, requireRole(['OWNER', 'ADMIN', 'EDITOR']), (req: AuthenticatedRequest, res: Response) => {
-  const { id } = req.params;
-  const body = req.body;
-  const user = req.user!;
-
-  const existing = db.prepare('SELECT * FROM buying_guides WHERE id = ?').get(id) as any;
-  if (!existing) {
-    res.status(404).json({ error: 'Guide not found' });
-    return;
+    const row = rows[0];
+    if (!row) {
+      res.status(404).json({ error: 'Guide not found' });
+      return;
+    }
+    res.json(formatGuideRow(row));
+  } catch (err: any) {
+    console.error('[GET GUIDE ERROR]', err);
+    res.status(500).json({ error: 'Failed to fetch guide' });
   }
-
-  const now = new Date().toISOString();
-  db.prepare(`
-    UPDATE buying_guides SET
-      slug = ?, title = ?, category = ?, category_slug = ?, subtitle = ?, quick_answer = ?,
-      author_id = ?, updated_at = ?, reading_time = ?, featured_product_ids_json = ?,
-      budget_range = ?, what_to_look_for_json = ?, who_should_buy = ?, who_should_skip = ?,
-      faqs_json = ?, status = ?, seo_title = ?, seo_description = ?, canonical_url = ?, og_image = ?
-    WHERE id = ?
-  `).run(
-    body.slug !== undefined ? body.slug : existing.slug,
-    body.title !== undefined ? body.title : existing.title,
-    body.category !== undefined ? body.category : existing.category,
-    body.categorySlug !== undefined ? body.categorySlug : existing.category_slug,
-    body.subtitle !== undefined ? body.subtitle : existing.subtitle,
-    body.quickAnswer !== undefined ? body.quickAnswer : existing.quick_answer,
-    body.authorId !== undefined ? body.authorId : existing.author_id,
-    now,
-    body.readingTime !== undefined ? body.readingTime : existing.reading_time,
-    body.featuredProductIds !== undefined ? JSON.stringify(body.featuredProductIds) : existing.featured_product_ids_json,
-    body.budgetRange !== undefined ? body.budgetRange : existing.budget_range,
-    body.whatToLookFor !== undefined ? JSON.stringify(body.whatToLookFor) : existing.what_to_look_for_json,
-    body.whoShouldBuy !== undefined ? body.whoShouldBuy : existing.who_should_buy,
-    body.whoShouldSkip !== undefined ? body.whoShouldSkip : existing.who_should_skip,
-    body.faqs !== undefined ? JSON.stringify(body.faqs) : existing.faqs_json,
-    body.status !== undefined ? body.status : existing.status,
-    body.seoTitle !== undefined ? body.seoTitle : existing.seo_title,
-    body.seoDescription !== undefined ? body.seoDescription : existing.seo_description,
-    body.canonicalUrl !== undefined ? body.canonicalUrl : existing.canonical_url,
-    body.ogImage !== undefined ? body.ogImage : existing.og_image,
-    id
-  );
-
-  logAudit(user.id, user.email, 'GUIDE_UPDATED', 'guide', id, { title: body.title || existing.title });
-  const updated = db.prepare('SELECT * FROM buying_guides WHERE id = ?').get(id);
-  res.json(formatGuideRow(updated));
 });
 
-contentRouter.delete('/guides/:id', authenticate, requireRole(['OWNER', 'ADMIN']), (req: AuthenticatedRequest, res: Response) => {
-  const { id } = req.params;
-  const user = req.user!;
-  db.prepare('DELETE FROM buying_guides WHERE id = ?').run(id);
-  logAudit(user.id, user.email, 'GUIDE_DELETED', 'guide', id);
-  res.json({ success: true });
+contentRouter.post('/guides', authenticate, requireRole(['OWNER', 'ADMIN', 'EDITOR']), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const body = req.body;
+    const user = req.user!;
+
+    const id = body.id || 'guide_' + crypto.randomUUID().slice(0, 8);
+    const slug = (body.slug || body.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')).trim();
+    const now = new Date().toISOString();
+
+    await db.insert(schema.buyingGuides).values({
+      id,
+      slug,
+      title: body.title,
+      category: body.category,
+      categorySlug: body.categorySlug || body.category.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+      subtitle: body.subtitle || '',
+      quickAnswer: body.quickAnswer || '',
+      authorId: body.authorId || 'rahul-sharma',
+      publishedAt: now,
+      updatedAt: now,
+      readingTime: body.readingTime || '6 min read',
+      featuredProductIdsJson: JSON.stringify(body.featuredProductIds || []),
+      budgetRange: body.budgetRange || 'Under ₹2,000',
+      whatToLookForJson: JSON.stringify(body.whatToLookFor || []),
+      whoShouldBuy: body.whoShouldBuy || '',
+      whoShouldSkip: body.whoShouldSkip || '',
+      faqsJson: JSON.stringify(body.faqs || []),
+      status: body.status || 'DRAFT',
+      seoTitle: body.seoTitle || `${body.title} | NIDPIK Guide`,
+      seoDescription: body.seoDescription || body.subtitle || '',
+      canonicalUrl: body.canonicalUrl || `https://nidpik.in/buying-guides/${slug}`,
+      ogImage: body.ogImage || null,
+      createdAt: now
+    });
+
+    await logAudit(user.id, user.email, 'GUIDE_CREATED', 'guide', id, { title: body.title });
+    const createdRows = await db.select().from(schema.buyingGuides).where(eq(schema.buyingGuides.id, id)).limit(1);
+    res.status(201).json(formatGuideRow(createdRows[0]));
+  } catch (err: any) {
+    console.error('[CREATE GUIDE ERROR]', err);
+    res.status(500).json({ error: 'Failed to create guide' });
+  }
+});
+
+contentRouter.put('/guides/:id', authenticate, requireRole(['OWNER', 'ADMIN', 'EDITOR']), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const body = req.body;
+    const user = req.user!;
+
+    const existingRows = await db.select().from(schema.buyingGuides).where(eq(schema.buyingGuides.id, id)).limit(1);
+    const existing = existingRows[0];
+    if (!existing) {
+      res.status(404).json({ error: 'Guide not found' });
+      return;
+    }
+
+    const now = new Date().toISOString();
+    await db.update(schema.buyingGuides).set({
+      slug: body.slug !== undefined ? body.slug : existing.slug,
+      title: body.title !== undefined ? body.title : existing.title,
+      category: body.category !== undefined ? body.category : existing.category,
+      categorySlug: body.categorySlug !== undefined ? body.categorySlug : existing.categorySlug,
+      subtitle: body.subtitle !== undefined ? body.subtitle : existing.subtitle,
+      quickAnswer: body.quickAnswer !== undefined ? body.quickAnswer : existing.quickAnswer,
+      authorId: body.authorId !== undefined ? body.authorId : existing.authorId,
+      updatedAt: now,
+      readingTime: body.readingTime !== undefined ? body.readingTime : existing.readingTime,
+      featuredProductIdsJson: body.featuredProductIds !== undefined ? JSON.stringify(body.featuredProductIds) : existing.featuredProductIdsJson,
+      budgetRange: body.budgetRange !== undefined ? body.budgetRange : existing.budgetRange,
+      whatToLookForJson: body.whatToLookFor !== undefined ? JSON.stringify(body.whatToLookFor) : existing.whatToLookForJson,
+      whoShouldBuy: body.whoShouldBuy !== undefined ? body.whoShouldBuy : existing.whoShouldBuy,
+      whoShouldSkip: body.whoShouldSkip !== undefined ? body.whoShouldSkip : existing.whoShouldSkip,
+      faqsJson: body.faqs !== undefined ? JSON.stringify(body.faqs) : existing.faqsJson,
+      status: body.status !== undefined ? body.status : existing.status,
+      seoTitle: body.seoTitle !== undefined ? body.seoTitle : existing.seoTitle,
+      seoDescription: body.seoDescription !== undefined ? body.seoDescription : existing.seoDescription,
+      canonicalUrl: body.canonicalUrl !== undefined ? body.canonicalUrl : existing.canonicalUrl,
+      ogImage: body.ogImage !== undefined ? body.ogImage : existing.ogImage
+    }).where(eq(schema.buyingGuides.id, id));
+
+    await logAudit(user.id, user.email, 'GUIDE_UPDATED', 'guide', id, { title: body.title || existing.title });
+    const updatedRows = await db.select().from(schema.buyingGuides).where(eq(schema.buyingGuides.id, id)).limit(1);
+    res.json(formatGuideRow(updatedRows[0]));
+  } catch (err: any) {
+    console.error('[UPDATE GUIDE ERROR]', err);
+    res.status(500).json({ error: 'Failed to update guide' });
+  }
+});
+
+contentRouter.delete('/guides/:id', authenticate, requireRole(['OWNER', 'ADMIN']), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const user = req.user!;
+    await db.delete(schema.buyingGuides).where(eq(schema.buyingGuides.id, id));
+    await logAudit(user.id, user.email, 'GUIDE_DELETED', 'guide', id);
+    res.json({ success: true });
+  } catch (err: any) {
+    console.error('[DELETE GUIDE ERROR]', err);
+    res.status(500).json({ error: 'Failed to delete guide' });
+  }
 });
 
 // ==========================================
@@ -312,133 +355,154 @@ contentRouter.delete('/guides/:id', authenticate, requireRole(['OWNER', 'ADMIN']
 // ==========================================
 export function formatComparisonRow(row: any) {
   if (!row) return null;
+  const productIdsJson = row.productIdsJson ?? row.product_ids_json ?? '[]';
+  const comparisonPointsJson = row.comparisonPointsJson ?? row.comparison_points_json ?? '[]';
+
   return {
     id: row.id,
     slug: row.slug,
     title: row.title,
     subtitle: row.subtitle,
     category: row.category,
-    categorySlug: row.category_slug,
-    productIds: JSON.parse(row.product_ids_json || '[]'),
-    winnerProductId: row.winner_product_id || undefined,
-    verdictSummary: row.verdict_summary,
-    comparisonPoints: JSON.parse(row.comparison_points_json || '[]'),
-    authorId: row.author_id,
-    updatedAt: row.updated_at,
+    categorySlug: row.categorySlug ?? row.category_slug,
+    productIds: typeof productIdsJson === 'string' ? JSON.parse(productIdsJson) : productIdsJson,
+    winnerProductId: (row.winnerProductId ?? row.winner_product_id) || undefined,
+    verdictSummary: row.verdictSummary ?? row.verdict_summary,
+    comparisonPoints: typeof comparisonPointsJson === 'string' ? JSON.parse(comparisonPointsJson) : comparisonPointsJson,
+    authorId: row.authorId ?? row.author_id,
+    updatedAt: row.updatedAt ?? row.updated_at,
     status: row.status,
-    seoTitle: row.seo_title,
-    seoDescription: row.seo_description,
-    canonicalUrl: row.canonical_url,
-    ogImage: row.og_image,
-    createdAt: row.created_at
+    seoTitle: row.seoTitle ?? row.seo_title,
+    seoDescription: row.seoDescription ?? row.seo_description,
+    canonicalUrl: row.canonicalUrl ?? row.canonical_url,
+    ogImage: row.ogImage ?? row.og_image,
+    createdAt: row.createdAt ?? row.created_at
   };
 }
 
-contentRouter.get('/comparisons', (req: Request, res: Response) => {
-  const rows = db.prepare('SELECT * FROM comparisons ORDER BY created_at DESC').all();
-  res.json(rows.map(formatComparisonRow));
-});
-
-contentRouter.get('/comparisons/:idOrSlug', (req: Request, res: Response) => {
-  const p = req.params.idOrSlug;
-  const row = db.prepare('SELECT * FROM comparisons WHERE id = ? OR slug = ?').get(p, p);
-  if (!row) {
-    res.status(404).json({ error: 'Comparison not found' });
-    return;
+contentRouter.get('/comparisons', async (req: Request, res: Response) => {
+  try {
+    const rows = await db.select().from(schema.comparisons).orderBy(desc(schema.comparisons.createdAt));
+    res.json(rows.map(formatComparisonRow));
+  } catch (err: any) {
+    console.error('[GET COMPARISONS ERROR]', err);
+    res.status(500).json({ error: 'Failed to fetch comparisons' });
   }
-  res.json(formatComparisonRow(row));
 });
 
-contentRouter.post('/comparisons', authenticate, requireRole(['OWNER', 'ADMIN', 'EDITOR']), (req: AuthenticatedRequest, res: Response) => {
-  const body = req.body;
-  const user = req.user!;
+contentRouter.get('/comparisons/:idOrSlug', async (req: Request, res: Response) => {
+  try {
+    const p = req.params.idOrSlug;
+    const rows = await db
+      .select()
+      .from(schema.comparisons)
+      .where(or(eq(schema.comparisons.id, p), eq(schema.comparisons.slug, p)))
+      .limit(1);
 
-  const id = body.id || 'comp_' + crypto.randomUUID().slice(0, 8);
-  const slug = (body.slug || body.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')).trim();
-  const now = new Date().toISOString();
-
-  db.prepare(`
-    INSERT INTO comparisons (
-      id, slug, title, subtitle, category, category_slug, product_ids_json,
-      winner_product_id, verdict_summary, comparison_points_json, author_id,
-      updated_at, status, seo_title, seo_description, canonical_url, og_image, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(
-    id,
-    slug,
-    body.title,
-    body.subtitle || '',
-    body.category,
-    body.categorySlug || body.category.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-    JSON.stringify(body.productIds || []),
-    body.winnerProductId || null,
-    body.verdictSummary || '',
-    JSON.stringify(body.comparisonPoints || []),
-    body.authorId || 'rahul-sharma',
-    now,
-    body.status || 'DRAFT',
-    body.seoTitle || `${body.title} | NIDPIK`,
-    body.seoDescription || body.verdictSummary || '',
-    body.canonicalUrl || `https://nidpik.in/compare/${slug}`,
-    body.ogImage || null,
-    now
-  );
-
-  logAudit(user.id, user.email, 'COMPARISON_CREATED', 'comparison', id, { title: body.title });
-  const created = db.prepare('SELECT * FROM comparisons WHERE id = ?').get(id);
-  res.status(201).json(formatComparisonRow(created));
-});
-
-contentRouter.put('/comparisons/:id', authenticate, requireRole(['OWNER', 'ADMIN', 'EDITOR']), (req: AuthenticatedRequest, res: Response) => {
-  const { id } = req.params;
-  const body = req.body;
-  const user = req.user!;
-
-  const existing = db.prepare('SELECT * FROM comparisons WHERE id = ?').get(id) as any;
-  if (!existing) {
-    res.status(404).json({ error: 'Comparison not found' });
-    return;
+    const row = rows[0];
+    if (!row) {
+      res.status(404).json({ error: 'Comparison not found' });
+      return;
+    }
+    res.json(formatComparisonRow(row));
+  } catch (err: any) {
+    console.error('[GET COMPARISON ERROR]', err);
+    res.status(500).json({ error: 'Failed to fetch comparison' });
   }
-
-  const now = new Date().toISOString();
-  db.prepare(`
-    UPDATE comparisons SET
-      slug = ?, title = ?, subtitle = ?, category = ?, category_slug = ?,
-      product_ids_json = ?, winner_product_id = ?, verdict_summary = ?,
-      comparison_points_json = ?, author_id = ?, updated_at = ?, status = ?,
-      seo_title = ?, seo_description = ?, canonical_url = ?, og_image = ?
-    WHERE id = ?
-  `).run(
-    body.slug !== undefined ? body.slug : existing.slug,
-    body.title !== undefined ? body.title : existing.title,
-    body.subtitle !== undefined ? body.subtitle : existing.subtitle,
-    body.category !== undefined ? body.category : existing.category,
-    body.categorySlug !== undefined ? body.categorySlug : existing.category_slug,
-    body.productIds !== undefined ? JSON.stringify(body.productIds) : existing.product_ids_json,
-    body.winnerProductId !== undefined ? body.winnerProductId : existing.winner_product_id,
-    body.verdictSummary !== undefined ? body.verdictSummary : existing.verdict_summary,
-    body.comparisonPoints !== undefined ? JSON.stringify(body.comparisonPoints) : existing.comparison_points_json,
-    body.authorId !== undefined ? body.authorId : existing.author_id,
-    now,
-    body.status !== undefined ? body.status : existing.status,
-    body.seoTitle !== undefined ? body.seoTitle : existing.seo_title,
-    body.seoDescription !== undefined ? body.seoDescription : existing.seo_description,
-    body.canonicalUrl !== undefined ? body.canonicalUrl : existing.canonical_url,
-    body.ogImage !== undefined ? body.ogImage : existing.og_image,
-    id
-  );
-
-  logAudit(user.id, user.email, 'COMPARISON_UPDATED', 'comparison', id, { title: body.title || existing.title });
-  const updated = db.prepare('SELECT * FROM comparisons WHERE id = ?').get(id);
-  res.json(formatComparisonRow(updated));
 });
 
-contentRouter.delete('/comparisons/:id', authenticate, requireRole(['OWNER', 'ADMIN']), (req: AuthenticatedRequest, res: Response) => {
-  const { id } = req.params;
-  const user = req.user!;
-  db.prepare('DELETE FROM comparisons WHERE id = ?').run(id);
-  logAudit(user.id, user.email, 'COMPARISON_DELETED', 'comparison', id);
-  res.json({ success: true });
+contentRouter.post('/comparisons', authenticate, requireRole(['OWNER', 'ADMIN', 'EDITOR']), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const body = req.body;
+    const user = req.user!;
+
+    const id = body.id || 'comp_' + crypto.randomUUID().slice(0, 8);
+    const slug = (body.slug || body.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')).trim();
+    const now = new Date().toISOString();
+
+    await db.insert(schema.comparisons).values({
+      id,
+      slug,
+      title: body.title,
+      subtitle: body.subtitle || '',
+      category: body.category,
+      categorySlug: body.categorySlug || body.category.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+      productIdsJson: JSON.stringify(body.productIds || []),
+      winnerProductId: body.winnerProductId || null,
+      verdictSummary: body.verdictSummary || '',
+      comparisonPointsJson: JSON.stringify(body.comparisonPoints || []),
+      authorId: body.authorId || 'rahul-sharma',
+      updatedAt: now,
+      status: body.status || 'DRAFT',
+      seoTitle: body.seoTitle || `${body.title} | NIDPIK`,
+      seoDescription: body.seoDescription || body.verdictSummary || '',
+      canonicalUrl: body.canonicalUrl || `https://nidpik.in/compare/${slug}`,
+      ogImage: body.ogImage || null,
+      createdAt: now
+    });
+
+    await logAudit(user.id, user.email, 'COMPARISON_CREATED', 'comparison', id, { title: body.title });
+    const createdRows = await db.select().from(schema.comparisons).where(eq(schema.comparisons.id, id)).limit(1);
+    res.status(201).json(formatComparisonRow(createdRows[0]));
+  } catch (err: any) {
+    console.error('[CREATE COMPARISON ERROR]', err);
+    res.status(500).json({ error: 'Failed to create comparison' });
+  }
+});
+
+contentRouter.put('/comparisons/:id', authenticate, requireRole(['OWNER', 'ADMIN', 'EDITOR']), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const body = req.body;
+    const user = req.user!;
+
+    const existingRows = await db.select().from(schema.comparisons).where(eq(schema.comparisons.id, id)).limit(1);
+    const existing = existingRows[0];
+    if (!existing) {
+      res.status(404).json({ error: 'Comparison not found' });
+      return;
+    }
+
+    const now = new Date().toISOString();
+    await db.update(schema.comparisons).set({
+      slug: body.slug !== undefined ? body.slug : existing.slug,
+      title: body.title !== undefined ? body.title : existing.title,
+      subtitle: body.subtitle !== undefined ? body.subtitle : existing.subtitle,
+      category: body.category !== undefined ? body.category : existing.category,
+      categorySlug: body.categorySlug !== undefined ? body.categorySlug : existing.categorySlug,
+      productIdsJson: body.productIds !== undefined ? JSON.stringify(body.productIds) : existing.productIdsJson,
+      winnerProductId: body.winnerProductId !== undefined ? body.winnerProductId : existing.winnerProductId,
+      verdictSummary: body.verdictSummary !== undefined ? body.verdictSummary : existing.verdictSummary,
+      comparisonPointsJson: body.comparisonPoints !== undefined ? JSON.stringify(body.comparisonPoints) : existing.comparisonPointsJson,
+      authorId: body.authorId !== undefined ? body.authorId : existing.authorId,
+      updatedAt: now,
+      status: body.status !== undefined ? body.status : existing.status,
+      seoTitle: body.seoTitle !== undefined ? body.seoTitle : existing.seoTitle,
+      seoDescription: body.seoDescription !== undefined ? body.seoDescription : existing.seoDescription,
+      canonicalUrl: body.canonicalUrl !== undefined ? body.canonicalUrl : existing.canonicalUrl,
+      ogImage: body.ogImage !== undefined ? body.ogImage : existing.ogImage
+    }).where(eq(schema.comparisons.id, id));
+
+    await logAudit(user.id, user.email, 'COMPARISON_UPDATED', 'comparison', id, { title: body.title || existing.title });
+    const updatedRows = await db.select().from(schema.comparisons).where(eq(schema.comparisons.id, id)).limit(1);
+    res.json(formatComparisonRow(updatedRows[0]));
+  } catch (err: any) {
+    console.error('[UPDATE COMPARISON ERROR]', err);
+    res.status(500).json({ error: 'Failed to update comparison' });
+  }
+});
+
+contentRouter.delete('/comparisons/:id', authenticate, requireRole(['OWNER', 'ADMIN']), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const user = req.user!;
+    await db.delete(schema.comparisons).where(eq(schema.comparisons.id, id));
+    await logAudit(user.id, user.email, 'COMPARISON_DELETED', 'comparison', id);
+    res.json({ success: true });
+  } catch (err: any) {
+    console.error('[DELETE COMPARISON ERROR]', err);
+    res.status(500).json({ error: 'Failed to delete comparison' });
+  }
 });
 
 // ==========================================
@@ -446,137 +510,157 @@ contentRouter.delete('/comparisons/:id', authenticate, requireRole(['OWNER', 'AD
 // ==========================================
 export function formatReviewRow(row: any) {
   if (!row) return null;
+  const whatWeLikedJson = row.whatWeLikedJson ?? row.what_we_liked_json ?? '[]';
+  const whatWeDidNotLikeJson = row.whatWeDidNotLikeJson ?? row.what_we_did_not_like_json ?? '[]';
+
   return {
     id: row.id,
     slug: row.slug,
     title: row.title,
-    productId: row.product_id,
-    authorId: row.author_id,
-    updatedAt: row.updated_at,
-    readingTime: row.reading_time,
+    productId: row.productId ?? row.product_id,
+    authorId: row.authorId ?? row.author_id,
+    updatedAt: row.updatedAt ?? row.updated_at,
+    readingTime: row.readingTime ?? row.reading_time,
     verdict: row.verdict,
-    whoItIsFor: row.who_it_is_for,
-    whatWeLiked: JSON.parse(row.what_we_liked_json || '[]'),
-    whatWeDidNotLike: JSON.parse(row.what_we_did_not_like_json || '[]'),
-    inDepthTesting: row.in_depth_testing,
-    finalRatingText: row.final_rating_text,
+    whoItIsFor: row.whoItIsFor ?? row.who_it_is_for,
+    whatWeLiked: typeof whatWeLikedJson === 'string' ? JSON.parse(whatWeLikedJson) : whatWeLikedJson,
+    whatWeDidNotLike: typeof whatWeDidNotLikeJson === 'string' ? JSON.parse(whatWeDidNotLikeJson) : whatWeDidNotLikeJson,
+    inDepthTesting: row.inDepthTesting ?? row.in_depth_testing,
+    finalRatingText: row.finalRatingText ?? row.final_rating_text,
     status: row.status,
-    seoTitle: row.seo_title,
-    seoDescription: row.seo_description,
-    canonicalUrl: row.canonical_url,
-    ogImage: row.og_image,
-    createdAt: row.created_at
+    seoTitle: row.seoTitle ?? row.seo_title,
+    seoDescription: row.seoDescription ?? row.seo_description,
+    canonicalUrl: row.canonicalUrl ?? row.canonical_url,
+    ogImage: row.ogImage ?? row.og_image,
+    createdAt: row.createdAt ?? row.created_at
   };
 }
 
-contentRouter.get('/reviews', (req: Request, res: Response) => {
-  const rows = db.prepare('SELECT * FROM reviews ORDER BY created_at DESC').all();
-  res.json(rows.map(formatReviewRow));
-});
-
-contentRouter.get('/reviews/:idOrSlug', (req: Request, res: Response) => {
-  const p = req.params.idOrSlug;
-  const row = db.prepare('SELECT * FROM reviews WHERE id = ? OR slug = ?').get(p, p);
-  if (!row) {
-    res.status(404).json({ error: 'Review not found' });
-    return;
+contentRouter.get('/reviews', async (req: Request, res: Response) => {
+  try {
+    const rows = await db.select().from(schema.reviews).orderBy(desc(schema.reviews.createdAt));
+    res.json(rows.map(formatReviewRow));
+  } catch (err: any) {
+    console.error('[GET REVIEWS ERROR]', err);
+    res.status(500).json({ error: 'Failed to fetch reviews' });
   }
-  res.json(formatReviewRow(row));
 });
 
-contentRouter.post('/reviews', authenticate, requireRole(['OWNER', 'ADMIN', 'EDITOR']), (req: AuthenticatedRequest, res: Response) => {
-  const body = req.body;
-  const user = req.user!;
+contentRouter.get('/reviews/:idOrSlug', async (req: Request, res: Response) => {
+  try {
+    const p = req.params.idOrSlug;
+    const rows = await db
+      .select()
+      .from(schema.reviews)
+      .where(or(eq(schema.reviews.id, p), eq(schema.reviews.slug, p)))
+      .limit(1);
 
-  const id = body.id || 'rev_' + crypto.randomUUID().slice(0, 8);
-  const slug = (body.slug || body.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')).trim();
-  const now = new Date().toISOString();
-
-  db.prepare(`
-    INSERT INTO reviews (
-      id, slug, title, product_id, author_id, updated_at, reading_time,
-      verdict, who_it_is_for, what_we_liked_json, what_we_did_not_like_json,
-      in_depth_testing, final_rating_text, status, seo_title, seo_description,
-      canonical_url, og_image, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(
-    id,
-    slug,
-    body.title,
-    body.productId,
-    body.authorId || 'rahul-sharma',
-    now,
-    body.readingTime || '5 min read',
-    body.verdict || '',
-    body.whoItIsFor || '',
-    JSON.stringify(body.whatWeLiked || []),
-    JSON.stringify(body.whatWeDidNotLike || []),
-    body.inDepthTesting || '',
-    body.finalRatingText || 'Editor Score: 4.8 / 5.0',
-    body.status || 'DRAFT',
-    body.seoTitle || `${body.title} | NIDPIK`,
-    body.seoDescription || body.verdict || '',
-    body.canonicalUrl || `https://nidpik.in/reviews/${slug}`,
-    body.ogImage || null,
-    now
-  );
-
-  logAudit(user.id, user.email, 'REVIEW_CREATED', 'review', id, { title: body.title });
-  const created = db.prepare('SELECT * FROM reviews WHERE id = ?').get(id);
-  res.status(201).json(formatReviewRow(created));
-});
-
-contentRouter.put('/reviews/:id', authenticate, requireRole(['OWNER', 'ADMIN', 'EDITOR']), (req: AuthenticatedRequest, res: Response) => {
-  const { id } = req.params;
-  const body = req.body;
-  const user = req.user!;
-
-  const existing = db.prepare('SELECT * FROM reviews WHERE id = ?').get(id) as any;
-  if (!existing) {
-    res.status(404).json({ error: 'Review not found' });
-    return;
+    const row = rows[0];
+    if (!row) {
+      res.status(404).json({ error: 'Review not found' });
+      return;
+    }
+    res.json(formatReviewRow(row));
+  } catch (err: any) {
+    console.error('[GET REVIEW ERROR]', err);
+    res.status(500).json({ error: 'Failed to fetch review' });
   }
-
-  const now = new Date().toISOString();
-  db.prepare(`
-    UPDATE reviews SET
-      slug = ?, title = ?, product_id = ?, author_id = ?, updated_at = ?, reading_time = ?,
-      verdict = ?, who_it_is_for = ?, what_we_liked_json = ?, what_we_did_not_like_json = ?,
-      in_depth_testing = ?, final_rating_text = ?, status = ?, seo_title = ?, seo_description = ?,
-      canonical_url = ?, og_image = ?
-    WHERE id = ?
-  `).run(
-    body.slug !== undefined ? body.slug : existing.slug,
-    body.title !== undefined ? body.title : existing.title,
-    body.productId !== undefined ? body.productId : existing.product_id,
-    body.authorId !== undefined ? body.authorId : existing.author_id,
-    now,
-    body.readingTime !== undefined ? body.readingTime : existing.reading_time,
-    body.verdict !== undefined ? body.verdict : existing.verdict,
-    body.whoItIsFor !== undefined ? body.whoItIsFor : existing.who_it_is_for,
-    body.whatWeLiked !== undefined ? JSON.stringify(body.whatWeLiked) : existing.what_we_liked_json,
-    body.whatWeDidNotLike !== undefined ? JSON.stringify(body.whatWeDidNotLike) : existing.what_we_did_not_like_json,
-    body.inDepthTesting !== undefined ? body.inDepthTesting : existing.in_depth_testing,
-    body.finalRatingText !== undefined ? body.finalRatingText : existing.final_rating_text,
-    body.status !== undefined ? body.status : existing.status,
-    body.seoTitle !== undefined ? body.seoTitle : existing.seo_title,
-    body.seoDescription !== undefined ? body.seoDescription : existing.seo_description,
-    body.canonicalUrl !== undefined ? body.canonicalUrl : existing.canonical_url,
-    body.ogImage !== undefined ? body.ogImage : existing.og_image,
-    id
-  );
-
-  logAudit(user.id, user.email, 'REVIEW_UPDATED', 'review', id, { title: body.title || existing.title });
-  const updated = db.prepare('SELECT * FROM reviews WHERE id = ?').get(id);
-  res.json(formatReviewRow(updated));
 });
 
-contentRouter.delete('/reviews/:id', authenticate, requireRole(['OWNER', 'ADMIN']), (req: AuthenticatedRequest, res: Response) => {
-  const { id } = req.params;
-  const user = req.user!;
-  db.prepare('DELETE FROM reviews WHERE id = ?').run(id);
-  logAudit(user.id, user.email, 'REVIEW_DELETED', 'review', id);
-  res.json({ success: true });
+contentRouter.post('/reviews', authenticate, requireRole(['OWNER', 'ADMIN', 'EDITOR']), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const body = req.body;
+    const user = req.user!;
+
+    const id = body.id || 'rev_' + crypto.randomUUID().slice(0, 8);
+    const slug = (body.slug || body.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')).trim();
+    const now = new Date().toISOString();
+
+    await db.insert(schema.reviews).values({
+      id,
+      slug,
+      title: body.title,
+      productId: body.productId,
+      authorId: body.authorId || 'rahul-sharma',
+      updatedAt: now,
+      readingTime: body.readingTime || '5 min read',
+      verdict: body.verdict || '',
+      whoItIsFor: body.whoItIsFor || '',
+      whatWeLikedJson: JSON.stringify(body.whatWeLiked || []),
+      whatWeDidNotLikeJson: JSON.stringify(body.whatWeDidNotLike || []),
+      inDepthTesting: body.inDepthTesting || '',
+      finalRatingText: body.finalRatingText || 'Editor Score: 4.8 / 5.0',
+      status: body.status || 'DRAFT',
+      seoTitle: body.seoTitle || `${body.title} | NIDPIK`,
+      seoDescription: body.seoDescription || body.verdict || '',
+      canonicalUrl: body.canonicalUrl || `https://nidpik.in/reviews/${slug}`,
+      ogImage: body.ogImage || null,
+      createdAt: now
+    });
+
+    await logAudit(user.id, user.email, 'REVIEW_CREATED', 'review', id, { title: body.title });
+    const createdRows = await db.select().from(schema.reviews).where(eq(schema.reviews.id, id)).limit(1);
+    res.status(201).json(formatReviewRow(createdRows[0]));
+  } catch (err: any) {
+    console.error('[CREATE REVIEW ERROR]', err);
+    res.status(500).json({ error: 'Failed to create review' });
+  }
+});
+
+contentRouter.put('/reviews/:id', authenticate, requireRole(['OWNER', 'ADMIN', 'EDITOR']), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const body = req.body;
+    const user = req.user!;
+
+    const existingRows = await db.select().from(schema.reviews).where(eq(schema.reviews.id, id)).limit(1);
+    const existing = existingRows[0];
+    if (!existing) {
+      res.status(404).json({ error: 'Review not found' });
+      return;
+    }
+
+    const now = new Date().toISOString();
+    await db.update(schema.reviews).set({
+      slug: body.slug !== undefined ? body.slug : existing.slug,
+      title: body.title !== undefined ? body.title : existing.title,
+      productId: body.productId !== undefined ? body.productId : existing.productId,
+      authorId: body.authorId !== undefined ? body.authorId : existing.authorId,
+      updatedAt: now,
+      readingTime: body.readingTime !== undefined ? body.readingTime : existing.readingTime,
+      verdict: body.verdict !== undefined ? body.verdict : existing.verdict,
+      whoItIsFor: body.whoItIsFor !== undefined ? body.whoItIsFor : existing.whoItIsFor,
+      whatWeLikedJson: body.whatWeLiked !== undefined ? JSON.stringify(body.whatWeLiked) : existing.whatWeLikedJson,
+      whatWeDidNotLikeJson: body.whatWeDidNotLike !== undefined ? JSON.stringify(body.whatWeDidNotLike) : existing.whatWeDidNotLikeJson,
+      inDepthTesting: body.inDepthTesting !== undefined ? body.inDepthTesting : existing.inDepthTesting,
+      finalRatingText: body.finalRatingText !== undefined ? body.finalRatingText : existing.finalRatingText,
+      status: body.status !== undefined ? body.status : existing.status,
+      seoTitle: body.seoTitle !== undefined ? body.seoTitle : existing.seoTitle,
+      seoDescription: body.seoDescription !== undefined ? body.seoDescription : existing.seoDescription,
+      canonicalUrl: body.canonicalUrl !== undefined ? body.canonicalUrl : existing.canonicalUrl,
+      ogImage: body.ogImage !== undefined ? body.ogImage : existing.ogImage
+    }).where(eq(schema.reviews.id, id));
+
+    await logAudit(user.id, user.email, 'REVIEW_UPDATED', 'review', id, { title: body.title || existing.title });
+    const updatedRows = await db.select().from(schema.reviews).where(eq(schema.reviews.id, id)).limit(1);
+    res.json(formatReviewRow(updatedRows[0]));
+  } catch (err: any) {
+    console.error('[UPDATE REVIEW ERROR]', err);
+    res.status(500).json({ error: 'Failed to update review' });
+  }
+});
+
+contentRouter.delete('/reviews/:id', authenticate, requireRole(['OWNER', 'ADMIN']), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const user = req.user!;
+    await db.delete(schema.reviews).where(eq(schema.reviews.id, id));
+    await logAudit(user.id, user.email, 'REVIEW_DELETED', 'review', id);
+    res.json({ success: true });
+  } catch (err: any) {
+    console.error('[DELETE REVIEW ERROR]', err);
+    res.status(500).json({ error: 'Failed to delete review' });
+  }
 });
 
 // ==========================================
@@ -584,6 +668,9 @@ contentRouter.delete('/reviews/:id', authenticate, requireRole(['OWNER', 'ADMIN'
 // ==========================================
 export function formatProblemRow(row: any) {
   if (!row) return null;
+  const productIdsJson = row.productIdsJson ?? row.product_ids_json ?? '[]';
+  const adviceTipsJson = row.adviceTipsJson ?? row.advice_tips_json ?? '[]';
+
   return {
     id: row.id,
     slug: row.slug,
@@ -591,152 +678,177 @@ export function formatProblemRow(row: any) {
     tagline: row.tagline,
     description: row.description,
     image: row.image,
-    targetUser: row.target_user,
-    productIds: JSON.parse(row.product_ids_json || '[]'),
-    adviceTips: JSON.parse(row.advice_tips_json || '[]'),
+    targetUser: row.targetUser ?? row.target_user,
+    productIds: typeof productIdsJson === 'string' ? JSON.parse(productIdsJson) : productIdsJson,
+    adviceTips: typeof adviceTipsJson === 'string' ? JSON.parse(adviceTipsJson) : adviceTipsJson,
     status: row.status,
-    seoTitle: row.seo_title,
-    seoDescription: row.seo_description,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at
+    seoTitle: row.seoTitle ?? row.seo_title,
+    seoDescription: row.seoDescription ?? row.seo_description,
+    createdAt: row.createdAt ?? row.created_at,
+    updatedAt: row.updatedAt ?? row.updated_at
   };
 }
 
-contentRouter.get('/problems', (req: Request, res: Response) => {
-  const rows = db.prepare('SELECT * FROM problem_collections ORDER BY created_at ASC').all();
-  res.json(rows.map(formatProblemRow));
-});
-
-contentRouter.get('/problems/:idOrSlug', (req: Request, res: Response) => {
-  const p = req.params.idOrSlug;
-  const row = db.prepare('SELECT * FROM problem_collections WHERE id = ? OR slug = ?').get(p, p);
-  if (!row) {
-    res.status(404).json({ error: 'Problem collection not found' });
-    return;
+contentRouter.get('/problems', async (req: Request, res: Response) => {
+  try {
+    const rows = await db.select().from(schema.problemCollections).orderBy(asc(schema.problemCollections.createdAt));
+    res.json(rows.map(formatProblemRow));
+  } catch (err: any) {
+    console.error('[GET PROBLEMS ERROR]', err);
+    res.status(500).json({ error: 'Failed to fetch problem collections' });
   }
-  res.json(formatProblemRow(row));
 });
 
-contentRouter.post('/problems', authenticate, requireRole(['OWNER', 'ADMIN', 'EDITOR']), (req: AuthenticatedRequest, res: Response) => {
-  const body = req.body;
-  const user = req.user!;
+contentRouter.get('/problems/:idOrSlug', async (req: Request, res: Response) => {
+  try {
+    const p = req.params.idOrSlug;
+    const rows = await db
+      .select()
+      .from(schema.problemCollections)
+      .where(or(eq(schema.problemCollections.id, p), eq(schema.problemCollections.slug, p)))
+      .limit(1);
 
-  const id = body.id || 'prob_' + crypto.randomUUID().slice(0, 8);
-  const slug = (body.slug || body.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')).trim();
-  const now = new Date().toISOString();
-
-  db.prepare(`
-    INSERT INTO problem_collections (
-      id, slug, title, tagline, description, image, target_user,
-      product_ids_json, advice_tips_json, status, seo_title, seo_description,
-      created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(
-    id,
-    slug,
-    body.title,
-    body.tagline || '',
-    body.description || '',
-    body.image || '/src/assets/images/nidpik_kitchen_small_1790936646322.jpg',
-    body.targetUser || 'Indian urban households',
-    JSON.stringify(body.productIds || []),
-    JSON.stringify(body.adviceTips || []),
-    body.status || 'DRAFT',
-    body.seoTitle || `${body.title} | NIDPIK`,
-    body.seoDescription || body.tagline || '',
-    now,
-    now
-  );
-
-  logAudit(user.id, user.email, 'PROBLEM_CREATED', 'problem', id, { title: body.title });
-  const created = db.prepare('SELECT * FROM problem_collections WHERE id = ?').get(id);
-  res.status(201).json(formatProblemRow(created));
-});
-
-contentRouter.put('/problems/:id', authenticate, requireRole(['OWNER', 'ADMIN', 'EDITOR']), (req: AuthenticatedRequest, res: Response) => {
-  const { id } = req.params;
-  const body = req.body;
-  const user = req.user!;
-
-  const existing = db.prepare('SELECT * FROM problem_collections WHERE id = ?').get(id) as any;
-  if (!existing) {
-    res.status(404).json({ error: 'Problem collection not found' });
-    return;
+    const row = rows[0];
+    if (!row) {
+      res.status(404).json({ error: 'Problem collection not found' });
+      return;
+    }
+    res.json(formatProblemRow(row));
+  } catch (err: any) {
+    console.error('[GET PROBLEM ERROR]', err);
+    res.status(500).json({ error: 'Failed to fetch problem collection' });
   }
-
-  const now = new Date().toISOString();
-  db.prepare(`
-    UPDATE problem_collections SET
-      slug = ?, title = ?, tagline = ?, description = ?, image = ?, target_user = ?,
-      product_ids_json = ?, advice_tips_json = ?, status = ?, seo_title = ?, seo_description = ?,
-      updated_at = ?
-    WHERE id = ?
-  `).run(
-    body.slug !== undefined ? body.slug : existing.slug,
-    body.title !== undefined ? body.title : existing.title,
-    body.tagline !== undefined ? body.tagline : existing.tagline,
-    body.description !== undefined ? body.description : existing.description,
-    body.image !== undefined ? body.image : existing.image,
-    body.targetUser !== undefined ? body.targetUser : existing.target_user,
-    body.productIds !== undefined ? JSON.stringify(body.productIds) : existing.product_ids_json,
-    body.adviceTips !== undefined ? JSON.stringify(body.adviceTips) : existing.advice_tips_json,
-    body.status !== undefined ? body.status : existing.status,
-    body.seoTitle !== undefined ? body.seoTitle : existing.seo_title,
-    body.seoDescription !== undefined ? body.seoDescription : existing.seo_description,
-    now,
-    id
-  );
-
-  logAudit(user.id, user.email, 'PROBLEM_UPDATED', 'problem', id, { title: body.title || existing.title });
-  const updated = db.prepare('SELECT * FROM problem_collections WHERE id = ?').get(id);
-  res.json(formatProblemRow(updated));
 });
 
-contentRouter.delete('/problems/:id', authenticate, requireRole(['OWNER', 'ADMIN']), (req: AuthenticatedRequest, res: Response) => {
-  const { id } = req.params;
-  const user = req.user!;
-  db.prepare('DELETE FROM problem_collections WHERE id = ?').run(id);
-  logAudit(user.id, user.email, 'PROBLEM_DELETED', 'problem', id);
-  res.json({ success: true });
+contentRouter.post('/problems', authenticate, requireRole(['OWNER', 'ADMIN', 'EDITOR']), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const body = req.body;
+    const user = req.user!;
+
+    const id = body.id || 'prob_' + crypto.randomUUID().slice(0, 8);
+    const slug = (body.slug || body.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')).trim();
+    const now = new Date().toISOString();
+
+    await db.insert(schema.problemCollections).values({
+      id,
+      slug,
+      title: body.title,
+      tagline: body.tagline || '',
+      description: body.description || '',
+      image: body.image || '/src/assets/images/nidpik_kitchen_small_1790936646322.jpg',
+      targetUser: body.targetUser || 'Indian urban households',
+      productIdsJson: JSON.stringify(body.productIds || []),
+      adviceTipsJson: JSON.stringify(body.adviceTips || []),
+      status: body.status || 'DRAFT',
+      seoTitle: body.seoTitle || `${body.title} | NIDPIK`,
+      seoDescription: body.seoDescription || body.tagline || '',
+      createdAt: now,
+      updatedAt: now
+    });
+
+    await logAudit(user.id, user.email, 'PROBLEM_CREATED', 'problem', id, { title: body.title });
+    const createdRows = await db.select().from(schema.problemCollections).where(eq(schema.problemCollections.id, id)).limit(1);
+    res.status(201).json(formatProblemRow(createdRows[0]));
+  } catch (err: any) {
+    console.error('[CREATE PROBLEM ERROR]', err);
+    res.status(500).json({ error: 'Failed to create problem collection' });
+  }
+});
+
+contentRouter.put('/problems/:id', authenticate, requireRole(['OWNER', 'ADMIN', 'EDITOR']), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const body = req.body;
+    const user = req.user!;
+
+    const existingRows = await db.select().from(schema.problemCollections).where(eq(schema.problemCollections.id, id)).limit(1);
+    const existing = existingRows[0];
+    if (!existing) {
+      res.status(404).json({ error: 'Problem collection not found' });
+      return;
+    }
+
+    const now = new Date().toISOString();
+    await db.update(schema.problemCollections).set({
+      slug: body.slug !== undefined ? body.slug : existing.slug,
+      title: body.title !== undefined ? body.title : existing.title,
+      tagline: body.tagline !== undefined ? body.tagline : existing.tagline,
+      description: body.description !== undefined ? body.description : existing.description,
+      image: body.image !== undefined ? body.image : existing.image,
+      targetUser: body.targetUser !== undefined ? body.targetUser : existing.targetUser,
+      productIdsJson: body.productIds !== undefined ? JSON.stringify(body.productIds) : existing.productIdsJson,
+      adviceTipsJson: body.adviceTips !== undefined ? JSON.stringify(body.adviceTips) : existing.adviceTipsJson,
+      status: body.status !== undefined ? body.status : existing.status,
+      seoTitle: body.seoTitle !== undefined ? body.seoTitle : existing.seoTitle,
+      seoDescription: body.seoDescription !== undefined ? body.seoDescription : existing.seoDescription,
+      updatedAt: now
+    }).where(eq(schema.problemCollections.id, id));
+
+    await logAudit(user.id, user.email, 'PROBLEM_UPDATED', 'problem', id, { title: body.title || existing.title });
+    const updatedRows = await db.select().from(schema.problemCollections).where(eq(schema.problemCollections.id, id)).limit(1);
+    res.json(formatProblemRow(updatedRows[0]));
+  } catch (err: any) {
+    console.error('[UPDATE PROBLEM ERROR]', err);
+    res.status(500).json({ error: 'Failed to update problem collection' });
+  }
+});
+
+contentRouter.delete('/problems/:id', authenticate, requireRole(['OWNER', 'ADMIN']), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const user = req.user!;
+    await db.delete(schema.problemCollections).where(eq(schema.problemCollections.id, id));
+    await logAudit(user.id, user.email, 'PROBLEM_DELETED', 'problem', id);
+    res.json({ success: true });
+  } catch (err: any) {
+    console.error('[DELETE PROBLEM ERROR]', err);
+    res.status(500).json({ error: 'Failed to delete problem collection' });
+  }
 });
 
 // ==========================================
 // BUDGET TIERS CRUD
 // ==========================================
-contentRouter.get('/budgets', (req: Request, res: Response) => {
-  const rows = db.prepare('SELECT * FROM budget_tiers ORDER BY amount ASC').all() as any[];
-  res.json(rows.map(r => ({
-    amount: Number(r.amount),
-    title: r.title,
-    slug: r.slug,
-    headline: r.headline,
-    description: r.description,
-    recommendedCategory: r.recommended_category,
-    createdAt: r.created_at,
-    updatedAt: r.updated_at
-  })));
+contentRouter.get('/budgets', async (req: Request, res: Response) => {
+  try {
+    const rows = await db.select().from(schema.budgetTiers).orderBy(asc(schema.budgetTiers.amount));
+    res.json(rows.map(r => ({
+      amount: Number(r.amount),
+      title: r.title,
+      slug: r.slug,
+      headline: r.headline,
+      description: r.description,
+      recommendedCategory: r.recommendedCategory,
+      createdAt: r.createdAt,
+      updatedAt: r.updatedAt
+    })));
+  } catch (err: any) {
+    console.error('[GET BUDGETS ERROR]', err);
+    res.status(500).json({ error: 'Failed to fetch budget tiers' });
+  }
 });
 
-contentRouter.put('/budgets/:amount', authenticate, requireRole(['OWNER', 'ADMIN', 'EDITOR']), (req: AuthenticatedRequest, res: Response) => {
-  const amount = Number(req.params.amount);
-  const body = req.body;
-  const user = req.user!;
+contentRouter.put('/budgets/:amount', authenticate, requireRole(['OWNER', 'ADMIN', 'EDITOR']), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const amount = Number(req.params.amount);
+    const body = req.body;
+    const user = req.user!;
 
-  const now = new Date().toISOString();
-  db.prepare(`
-    UPDATE budget_tiers SET
-      title = ?, headline = ?, description = ?, recommended_category = ?, updated_at = ?
-    WHERE amount = ?
-  `).run(
-    body.title,
-    body.headline,
-    body.description,
-    body.recommendedCategory,
-    now,
-    amount
-  );
+    const now = new Date().toISOString();
+    await db.update(schema.budgetTiers).set({
+      title: body.title,
+      headline: body.headline,
+      description: body.description,
+      recommendedCategory: body.recommendedCategory,
+      updatedAt: now
+    }).where(eq(schema.budgetTiers.amount, amount));
 
-  logAudit(user.id, user.email, 'BUDGET_UPDATED', 'budget', String(amount));
-  const updated = db.prepare('SELECT * FROM budget_tiers WHERE amount = ?').get(amount);
-  res.json(updated);
+    await logAudit(user.id, user.email, 'BUDGET_UPDATED', 'budget', String(amount));
+    const updatedRows = await db.select().from(schema.budgetTiers).where(eq(schema.budgetTiers.amount, amount)).limit(1);
+    res.json(updatedRows[0]);
+  } catch (err: any) {
+    console.error('[UPDATE BUDGET ERROR]', err);
+    res.status(500).json({ error: 'Failed to update budget tier' });
+  }
 });
+

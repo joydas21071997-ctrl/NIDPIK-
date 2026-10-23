@@ -88,11 +88,13 @@ export const AdminSettingsPage: React.FC = () => {
     setLoading(true);
     api.settings.get()
       .then((res) => {
-        if (res.general) {
+        if (res && res.general) {
           setForm(prev => ({ ...prev, ...res.general }));
         }
       })
-      .catch(console.error)
+      .catch((err) => {
+        console.warn('API settings fetch note:', err);
+      })
       .finally(() => setLoading(false));
   }, []);
 

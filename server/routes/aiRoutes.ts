@@ -1,5 +1,7 @@
 import { Router, Request, Response } from 'express';
-import { db } from '../db';
+import { db } from '../../src/db';
+import * as schema from '../../src/db/schema';
+import { eq, and, or, lte, asc } from 'drizzle-orm';
 import { GoogleGenAI, Type } from '@google/genai';
 import { formatProductRow } from './productRoutes';
 
@@ -55,26 +57,35 @@ aiRouter.post('/recommend', async (req: Request, res: Response) => {
 
     const cleanQuery = query.trim();
 
-    // 1. Fetch published products from SQLite
-    let sql = "SELECT * FROM products WHERE status = 'PUBLISHED'";
-    const params: any[] = [];
+    // 1. Fetch published products from PostgreSQL via Drizzle
+    const whereConditions: any[] = [eq(schema.products.status, 'PUBLISHED')];
 
     if (budgetMax && Number(budgetMax) > 0) {
-      sql += ' AND price <= ?';
-      params.push(Number(budgetMax));
+      whereConditions.push(lte(schema.products.price, Number(budgetMax)));
     }
 
     if (category && category !== 'all') {
-      sql += ' AND (category = ? OR category_slug = ?)';
-      params.push(category, category);
+      whereConditions.push(
+        or(
+          eq(schema.products.category, category),
+          eq(schema.products.categorySlug, category)
+        )
+      );
     }
 
-    sql += ' ORDER BY price ASC';
-    const productRows = db.prepare(sql).all(...params) as any[];
+    let productRows = await db.select()
+      .from(schema.products)
+      .where(and(...whereConditions))
+      .orderBy(asc(schema.products.price));
 
     if (productRows.length === 0) {
       // Relax filters if no product found
-      const fallbackRows = db.prepare("SELECT * FROM products WHERE status = 'PUBLISHED' ORDER BY price ASC LIMIT 10").all() as any[];
+      const fallbackRows = await db.select()
+        .from(schema.products)
+        .where(eq(schema.products.status, 'PUBLISHED'))
+        .orderBy(asc(schema.products.price))
+        .limit(10);
+
       return res.json({
         advice: `We couldn't find exact matches within the strict budget limit, but here are some of our top value-for-money recommendations for Indian shoppers.`,
         products: fallbackRows.map(formatProductRow),
@@ -83,15 +94,21 @@ aiRouter.post('/recommend', async (req: Request, res: Response) => {
     }
 
     // Format products catalog preview for Gemini context
-    const catalogSummary = productRows.slice(0, 35).map((p) => ({
+    const catalogSummary = productRows.slice(0, 35).map((p: any) => ({
       id: p.id,
       name: p.name,
       brand: p.brand,
       category: p.category,
       price: p.price,
-      quickVerdict: p.quick_verdict,
-      bestFor: p.best_for,
-      problemTags: JSON.parse(p.problem_tags_json || '[]')
+      quickVerdict: p.quickVerdict ?? p.quick_verdict,
+      bestFor: p.bestFor ?? p.best_for,
+      problemTags: (() => {
+        try {
+          return JSON.parse(p.problemTagsJson ?? p.problem_tags_json ?? '[]');
+        } catch {
+          return [];
+        }
+      })()
     }));
 
     // Check if GEMINI_API_KEY is available
@@ -153,7 +170,7 @@ ${JSON.stringify(catalogSummary, null, 2)}`
 
         if (response.text) {
           const parsed = JSON.parse(response.text);
-          const selectedMap = new Map(productRows.map((p) => [p.id, p]));
+          const selectedMap = new Map(productRows.map((p: any) => [p.id, p]));
           
           const matchedProducts = (parsed.selectedProductIds || [])
             .map((id: string) => selectedMap.get(id))
@@ -176,9 +193,9 @@ ${JSON.stringify(catalogSummary, null, 2)}`
 
     // Heuristic Fallback (zero cost, 100% offline resilient)
     const lowerQ = cleanQuery.toLowerCase();
-    const scoredProducts = productRows.map((p) => {
+    const scoredProducts = productRows.map((p: any) => {
       let score = 0;
-      const text = `${p.name} ${p.brand} ${p.category} ${p.subcategory} ${p.best_for} ${p.quick_verdict} ${p.problem_tags_json}`.toLowerCase();
+      const text = `${p.name} ${p.brand} ${p.category} ${p.subcategory} ${p.bestFor ?? p.best_for} ${p.quickVerdict ?? p.quick_verdict} ${p.problemTagsJson ?? p.problem_tags_json}`.toLowerCase();
       
       const words = lowerQ.split(/\s+/).filter((w) => w.length > 2);
       for (const w of words) {

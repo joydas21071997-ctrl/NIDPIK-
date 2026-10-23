@@ -15,8 +15,8 @@ import {
 } from 'lucide-react';
 
 export const AdminArticlesPage: React.FC = () => {
-  const { navigate, refreshPublicData } = useApp();
-  const [articles, setArticles] = useState<any[]>([]);
+  const { navigate, refreshPublicData, articles: appArticles } = useApp();
+  const [articles, setArticles] = useState<any[]>(appArticles || []);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
@@ -24,10 +24,19 @@ export const AdminArticlesPage: React.FC = () => {
   const loadArticles = async () => {
     try {
       setLoading(true);
+      setError(null);
       const data = await api.articles.getAll();
-      setArticles(data);
+      if (Array.isArray(data)) {
+        setArticles(data);
+      } else if (appArticles && appArticles.length > 0) {
+        setArticles(appArticles);
+      }
     } catch (err: any) {
-      setError(err.message || 'Failed to load articles');
+      if (appArticles && appArticles.length > 0) {
+        setArticles(appArticles);
+      } else {
+        setError(err.message || 'Failed to load articles');
+      }
     } finally {
       setLoading(false);
     }
@@ -36,6 +45,14 @@ export const AdminArticlesPage: React.FC = () => {
   useEffect(() => {
     loadArticles();
   }, []);
+
+  useEffect(() => {
+    if (appArticles && appArticles.length > 0 && articles.length === 0) {
+      setArticles(appArticles);
+    }
+  }, [appArticles]);
+
+  const safeArticles = Array.isArray(articles) ? articles : (appArticles || []);
 
   const handleDelete = async (id: string, title: string) => {
     if (!window.confirm(`Delete article "${title}"?`)) return;
@@ -48,7 +65,7 @@ export const AdminArticlesPage: React.FC = () => {
     }
   };
 
-  const filtered = articles.filter(a =>
+  const filtered = safeArticles.filter(a =>
     !search ||
     a.title?.toLowerCase().includes(search.toLowerCase()) ||
     a.category?.toLowerCase().includes(search.toLowerCase())

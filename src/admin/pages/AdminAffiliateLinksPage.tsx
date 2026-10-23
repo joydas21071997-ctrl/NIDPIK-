@@ -30,9 +30,10 @@ export const AdminAffiliateLinksPage: React.FC = () => {
     try {
       setLoading(true);
       const data = await api.affiliateLinks.getAll();
-      setLinks(data);
+      setLinks(Array.isArray(data) ? data : []);
     } catch (err: any) {
-      console.error(err);
+      console.warn('API links fetch note:', err);
+      setLinks([]);
     } finally {
       setLoading(false);
     }
@@ -41,6 +42,8 @@ export const AdminAffiliateLinksPage: React.FC = () => {
   useEffect(() => {
     loadLinks();
   }, []);
+
+  const safeLinks = Array.isArray(links) ? links : [];
 
   const handleGenerate = () => {
     if (!rawTargetUrl) return;
@@ -209,16 +212,16 @@ export const AdminAffiliateLinksPage: React.FC = () => {
         <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
           <div className="p-4 border-b border-slate-100 flex items-center justify-between">
             <h3 className="font-bold text-xs text-slate-900">Configured Product Affiliate Feeds</h3>
-            <span className="text-xs font-semibold text-slate-500">{links.length} links recorded</span>
+            <span className="text-xs font-semibold text-slate-500">{safeLinks.length} links recorded</span>
           </div>
 
           {loading ? (
             <div className="py-20 text-center text-xs text-slate-400">Loading links...</div>
-          ) : links.length === 0 ? (
+          ) : safeLinks.length === 0 ? (
             <div className="py-16 text-center text-xs text-slate-400">No custom affiliate links recorded.</div>
           ) : (
             <div className="divide-y divide-slate-100 text-xs">
-              {links.map((link) => (
+              {safeLinks.map((link) => (
                 <div key={link.id} className="p-4 flex items-center justify-between gap-4 hover:bg-slate-50">
                   <div className="min-w-0 max-w-xl">
                     <div className="flex items-center gap-2">

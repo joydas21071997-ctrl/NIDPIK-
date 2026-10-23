@@ -20,7 +20,7 @@ interface Props {
 }
 
 export const AdminArticleEditPage: React.FC<Props> = ({ articleId }) => {
-  const { navigate, refreshPublicData, products, authors, categories } = useApp();
+  const { navigate, refreshPublicData, products, authors, categories, articles, getArticleBySlug } = useApp();
   const isNew = !articleId || articleId === 'new';
 
   const [loading, setLoading] = useState(!isNew);
@@ -75,11 +75,33 @@ export const AdminArticleEditPage: React.FC<Props> = ({ articleId }) => {
           }
         })
         .catch((err) => {
-          setError(err.message || 'Article not found');
+          const rawArt = (articles || []).find(a => a.id === articleId || a.slug === articleId) || (getArticleBySlug ? getArticleBySlug(articleId) : undefined);
+          const localArt = rawArt as any;
+          if (localArt) {
+            setFormData({
+              title: localArt.title || '',
+              slug: localArt.slug || '',
+              excerpt: localArt.excerpt || '',
+              content: typeof localArt.content === 'string' ? localArt.content : (Array.isArray(localArt.content) ? localArt.content.join('\n\n') : (Array.isArray(localArt.paragraphs) ? localArt.paragraphs.join('\n\n') : '')),
+              coverImage: localArt.coverImage || localArt.image || '',
+              category: localArt.category || 'Guides',
+              authorId: localArt.authorId || localArt.author?.id || 'rahul-mehta',
+              readTime: localArt.readTime || localArt.readTimeMinutes ? `${localArt.readTimeMinutes} min read` : '5 min read',
+              tags: Array.isArray(localArt.tags) ? localArt.tags : [],
+              status: (localArt.status as any) || 'PUBLISHED',
+              relatedProductIds: Array.isArray(localArt.relatedProductIds) ? localArt.relatedProductIds : [],
+              seoTitle: localArt.seoTitle || localArt.title || '',
+              seoDescription: localArt.seoDescription || localArt.excerpt || '',
+              canonicalUrl: localArt.canonicalUrl || '',
+              ogImage: localArt.ogImage || localArt.image || ''
+            });
+          } else {
+            setError(err.message || 'Article not found');
+          }
         })
         .finally(() => setLoading(false));
     }
-  }, [articleId, isNew]);
+  }, [articleId, isNew, articles]);
 
   const generateSlug = () => {
     if (!formData.title) return;

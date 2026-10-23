@@ -17,8 +17,8 @@ import {
 } from 'lucide-react';
 
 export const AdminCategoriesPage: React.FC = () => {
-  const { refreshPublicData } = useApp();
-  const [categories, setCategories] = useState<any[]>([]);
+  const { refreshPublicData, categories: appCategories } = useApp();
+  const [categories, setCategories] = useState<any[]>(appCategories || []);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
@@ -43,10 +43,19 @@ export const AdminCategoriesPage: React.FC = () => {
   const loadCategories = async () => {
     try {
       setLoading(true);
+      setError(null);
       const data = await api.categories.getAll();
-      setCategories(data);
+      if (Array.isArray(data)) {
+        setCategories(data);
+      } else if (appCategories && appCategories.length > 0) {
+        setCategories(appCategories);
+      }
     } catch (err: any) {
-      setError(err.message || 'Failed to load categories');
+      if (appCategories && appCategories.length > 0) {
+        setCategories(appCategories);
+      } else {
+        setError(err.message || 'Failed to load categories');
+      }
     } finally {
       setLoading(false);
     }
@@ -55,6 +64,14 @@ export const AdminCategoriesPage: React.FC = () => {
   useEffect(() => {
     loadCategories();
   }, []);
+
+  useEffect(() => {
+    if (appCategories && appCategories.length > 0 && categories.length === 0) {
+      setCategories(appCategories);
+    }
+  }, [appCategories]);
+
+  const safeCategories = Array.isArray(categories) ? categories : (appCategories || []);
 
   const openCreateModal = () => {
     setEditingCategory(null);
@@ -151,7 +168,7 @@ export const AdminCategoriesPage: React.FC = () => {
           <div className="p-8 text-center text-rose-600 text-xs">{error}</div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {categories.map((cat) => (
+            {safeCategories.map((cat) => (
               <div
                 key={cat.id || cat.slug}
                 className="bg-white rounded-2xl border border-slate-200 p-5 shadow-2xs hover:border-slate-300 transition-all flex flex-col justify-between"

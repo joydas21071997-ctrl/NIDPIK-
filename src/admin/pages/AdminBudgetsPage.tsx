@@ -12,9 +12,9 @@ import {
 } from 'lucide-react';
 
 export const AdminBudgetsPage: React.FC = () => {
-  const { refreshPublicData } = useApp();
-  const [budgets, setBudgets] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { refreshPublicData, budgetTiers: appBudgets } = useApp();
+  const [budgets, setBudgets] = useState<any[]>(Array.isArray(appBudgets) ? appBudgets : []);
+  const [loading, setLoading] = useState(false);
   const [editingTier, setEditingTier] = useState<any | null>(null);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
 
@@ -31,9 +31,16 @@ export const AdminBudgetsPage: React.FC = () => {
     try {
       setLoading(true);
       const data = await api.budgets.getAll();
-      setBudgets(data);
+      if (Array.isArray(data)) {
+        setBudgets(data);
+      } else if (Array.isArray(appBudgets) && appBudgets.length > 0) {
+        setBudgets(appBudgets);
+      }
     } catch (err: any) {
-      console.error(err);
+      console.warn('API budgets fetch note:', err);
+      if (Array.isArray(appBudgets) && appBudgets.length > 0) {
+        setBudgets(appBudgets);
+      }
     } finally {
       setLoading(false);
     }
@@ -42,6 +49,10 @@ export const AdminBudgetsPage: React.FC = () => {
   useEffect(() => {
     loadBudgets();
   }, []);
+
+  const safeBudgets = Array.isArray(budgets) && budgets.length > 0
+    ? budgets
+    : (Array.isArray(appBudgets) ? appBudgets : []);
 
   const openEdit = (tier: any) => {
     setEditingTier(tier);
@@ -84,11 +95,16 @@ export const AdminBudgetsPage: React.FC = () => {
         )}
 
         <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
-          {loading ? (
+          {loading && safeBudgets.length === 0 ? (
             <div className="py-24 text-center text-xs text-slate-400">Loading budget tiers...</div>
+          ) : safeBudgets.length === 0 ? (
+            <div className="py-20 text-center space-y-2">
+              <Tag className="w-8 h-8 text-slate-300 mx-auto" />
+              <p className="text-sm font-semibold text-slate-700">No budget tiers configured</p>
+            </div>
           ) : (
             <div className="divide-y divide-slate-100">
-              {budgets.map((b) => (
+              {safeBudgets.map((b) => (
                 <div key={b.amount} className="p-5 flex items-center justify-between gap-4 hover:bg-slate-50/70 transition-colors">
                   <div className="flex items-center gap-4 min-w-0">
                     <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-700 border border-blue-200 flex items-center justify-center font-black font-mono text-sm shrink-0">

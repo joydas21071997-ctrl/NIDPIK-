@@ -31,11 +31,13 @@ export const AdminSeoPage: React.FC = () => {
     api.settings.get()
       .then((res) => {
         setSettings(res || {});
-        if (res.seo) {
+        if (res && res.seo) {
           setForm(prev => ({ ...prev, ...res.seo }));
         }
       })
-      .catch(console.error)
+      .catch((err) => {
+        console.warn('API settings fetch note:', err);
+      })
       .finally(() => setLoading(false));
   }, []);
 

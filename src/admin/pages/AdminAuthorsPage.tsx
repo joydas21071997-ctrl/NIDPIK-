@@ -13,9 +13,9 @@ import {
 } from 'lucide-react';
 
 export const AdminAuthorsPage: React.FC = () => {
-  const { refreshPublicData } = useApp();
-  const [authors, setAuthors] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { refreshPublicData, authors: appAuthors } = useApp();
+  const [authors, setAuthors] = useState<any[]>(Array.isArray(appAuthors) ? appAuthors : []);
+  const [loading, setLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingAuthor, setEditingAuthor] = useState<any | null>(null);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
@@ -32,9 +32,16 @@ export const AdminAuthorsPage: React.FC = () => {
     try {
       setLoading(true);
       const data = await api.authors.getAll();
-      setAuthors(data);
+      if (Array.isArray(data)) {
+        setAuthors(data);
+      } else if (Array.isArray(appAuthors) && appAuthors.length > 0) {
+        setAuthors(appAuthors);
+      }
     } catch (err: any) {
-      console.error(err);
+      console.warn('API authors fetch note:', err);
+      if (Array.isArray(appAuthors) && appAuthors.length > 0) {
+        setAuthors(appAuthors);
+      }
     } finally {
       setLoading(false);
     }
@@ -43,6 +50,10 @@ export const AdminAuthorsPage: React.FC = () => {
   useEffect(() => {
     loadAuthors();
   }, []);
+
+  const safeAuthors = Array.isArray(authors) && authors.length > 0
+    ? authors
+    : (Array.isArray(appAuthors) ? appAuthors : []);
 
   const openCreate = () => {
     setEditingAuthor(null);
@@ -125,54 +136,65 @@ export const AdminAuthorsPage: React.FC = () => {
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {authors.map((a) => (
-            <div key={a.id} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs space-y-4 flex flex-col justify-between">
-              <div className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-full overflow-hidden shrink-0 border border-slate-200 bg-slate-100">
-                    <img
-                      src={a.avatar}
-                      alt={a.name}
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        (e.target as any).src = 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&q=80';
-                      }}
-                    />
+        {loading && safeAuthors.length === 0 ? (
+          <div className="py-24 text-center text-xs text-slate-400 bg-white rounded-2xl border border-slate-200">
+            Loading authors...
+          </div>
+        ) : safeAuthors.length === 0 ? (
+          <div className="py-20 text-center space-y-2 bg-white rounded-2xl border border-slate-200">
+            <UserCheck className="w-8 h-8 text-slate-300 mx-auto" />
+            <p className="text-sm font-semibold text-slate-700">No authors found</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {safeAuthors.map((a) => (
+              <div key={a.id} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs space-y-4 flex flex-col justify-between">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-full overflow-hidden shrink-0 border border-slate-200 bg-slate-100">
+                      <img
+                        src={a.avatar}
+                        alt={a.name}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.target as any).src = 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&q=80';
+                        }}
+                      />
+                    </div>
+                    <div className="min-w-0">
+                      <h3 className="font-extrabold text-sm text-slate-900 truncate">{a.name}</h3>
+                      <span className="text-[11px] font-semibold text-blue-600 block truncate">{a.role}</span>
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <h3 className="font-extrabold text-sm text-slate-900 truncate">{a.name}</h3>
-                    <span className="text-[11px] font-semibold text-blue-600 block truncate">{a.role}</span>
-                  </div>
+
+                  <p className="text-xs text-slate-600 line-clamp-3">
+                    {a.bio || 'Independent researcher verifying real world specs and budget utility in India.'}
+                  </p>
                 </div>
 
-                <p className="text-xs text-slate-600 line-clamp-3">
-                  {a.bio || 'Independent researcher verifying real world specs and budget utility in India.'}
-                </p>
-              </div>
-
-              <div className="flex items-center justify-between pt-3 border-t border-slate-100 text-xs">
-                <span className="font-mono text-[10px] text-slate-400">ID: {a.id}</span>
-                <div className="flex items-center gap-1.5">
-                  <button
-                    onClick={() => openEdit(a)}
-                    className="p-1.5 hover:bg-blue-50 text-slate-500 hover:text-blue-600 rounded-lg transition-colors"
-                    title="Edit"
-                  >
-                    <Edit className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    onClick={() => handleDelete(a)}
-                    className="p-1.5 hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded-lg transition-colors"
-                    title="Delete"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
+                <div className="flex items-center justify-between pt-3 border-t border-slate-100 text-xs">
+                  <span className="font-mono text-[10px] text-slate-400">ID: {a.id}</span>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => openEdit(a)}
+                      className="p-1.5 hover:bg-blue-50 text-slate-500 hover:text-blue-600 rounded-lg transition-colors"
+                      title="Edit"
+                    >
+                      <Edit className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(a)}
+                      className="p-1.5 hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded-lg transition-colors"
+                      title="Delete"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
 
         {/* MODAL */}
         {modalOpen && (

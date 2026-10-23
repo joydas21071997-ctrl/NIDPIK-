@@ -19,10 +19,17 @@ import { aiRouter } from './server/routes/aiRoutes';
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
-  // Initialize SQLite database & seed initial data if needed
-  initDatabase();
+  // Database mode check
+  const isCloudSqlActive = Boolean(process.env.SQL_HOST || process.env.INSTANCE_CONNECTION_NAME);
+
+  if (isCloudSqlActive) {
+    console.log('[NIDPIK] Database Mode: Cloud SQL PostgreSQL via Drizzle ORM');
+  } else {
+    console.log('[NIDPIK] Database Mode: Local SQLite fallback');
+    initDatabase();
+  }
 
   // Middleware
   app.use(express.json({ limit: '10mb' }));
@@ -60,7 +67,12 @@ async function startServer() {
 
   // Health check
   app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok', service: 'nidpik-backend', time: new Date().toISOString() });
+    res.json({
+      status: 'ok',
+      service: 'nidpik-backend',
+      database: isCloudSqlActive ? 'Cloud SQL PostgreSQL' : 'SQLite Local',
+      time: new Date().toISOString()
+    });
   });
 
   // Vite middleware in dev or static files in production
@@ -79,7 +91,7 @@ async function startServer() {
   }
 
   app.listen(PORT, '0.0.0.0', () => {
-    console.log(`[NIDPIK] Full-Stack server running at http://0.0.0.0:${PORT}`);
+    console.log(`[NIDPIK] Express server running at http://0.0.0.0:${PORT}`);
   });
 }
 

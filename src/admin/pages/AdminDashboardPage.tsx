@@ -25,18 +25,63 @@ import {
 } from 'lucide-react';
 
 export const AdminDashboardPage: React.FC = () => {
-  const { navigate, refreshPublicData } = useApp();
-  const [summary, setSummary] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const {
+    navigate,
+    refreshPublicData,
+    products: appProducts,
+    categories: appCategories,
+    buyingGuides: appGuides,
+    articles: appArticles,
+    comparisons: appComparisons,
+    reviews: appReviews,
+    problemCollections: appProblems,
+    merchants: appMerchants
+  } = useApp();
+
+  const buildFallbackSummary = () => {
+    const totalProd = appProducts?.length || 0;
+    const pubProd = (appProducts || []).filter(p => p.status === 'PUBLISHED').length;
+    const draftProd = (appProducts || []).filter(p => p.status === 'DRAFT').length;
+    return {
+      products: {
+        total: totalProd,
+        published: pubProd,
+        draft: draftProd,
+        archived: Math.max(0, totalProd - pubProd - draftProd)
+      },
+      counts: {
+        categories: appCategories?.length || 0,
+        articles: appArticles?.length || 0,
+        guides: appGuides?.length || 0,
+        reviews: appReviews?.length || 0,
+        comparisons: appComparisons?.length || 0,
+        problems: appProblems?.length || 0,
+        merchants: appMerchants?.length || 0,
+        clicks: 0,
+        media: 0
+      },
+      recentProducts: (appProducts || []).slice(0, 6),
+      recentAudits: [],
+      popularClicked: []
+    };
+  };
+
+  const [summary, setSummary] = useState<any>(() => buildFallbackSummary());
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchSummary = async () => {
     try {
       setLoading(true);
       const data = await api.analytics.getSummary();
-      setSummary(data);
+      if (data && typeof data === 'object') {
+        setSummary(data);
+      } else {
+        setSummary(buildFallbackSummary());
+      }
     } catch (err: any) {
-      setError(err.message || 'Failed to load dashboard data');
+      console.warn('API dashboard summary fetch note:', err);
+      setSummary(buildFallbackSummary());
     } finally {
       setLoading(false);
     }
@@ -44,7 +89,11 @@ export const AdminDashboardPage: React.FC = () => {
 
   useEffect(() => {
     fetchSummary();
-  }, []);
+  }, [appProducts?.length]);
+
+  const recentProductsList = Array.isArray(summary?.recentProducts) ? summary.recentProducts : [];
+  const popularClickedList = Array.isArray(summary?.popularClicked) ? summary.popularClicked : [];
+  const recentAuditsList = Array.isArray(summary?.recentAudits) ? summary.recentAudits : [];
 
   const statCards = [
     {
@@ -187,13 +236,13 @@ export const AdminDashboardPage: React.FC = () => {
               </button>
             </div>
 
-            {loading ? (
+            {loading && recentProductsList.length === 0 ? (
               <div className="py-12 text-center text-xs text-slate-400">Loading catalog...</div>
-            ) : !summary?.recentProducts || summary.recentProducts.length === 0 ? (
+            ) : recentProductsList.length === 0 ? (
               <div className="py-12 text-center text-xs text-slate-400">No products found.</div>
             ) : (
               <div className="divide-y divide-slate-100">
-                {summary.recentProducts.map((p: any) => (
+                {recentProductsList.map((p: any) => (
                   <div
                     key={p.id}
                     className="py-3 flex items-center justify-between gap-4 hover:bg-slate-50/60 px-2 rounded-xl transition-colors"
@@ -264,24 +313,24 @@ export const AdminDashboardPage: React.FC = () => {
                 </button>
               </div>
 
-              {!summary?.popularClicked || summary.popularClicked.length === 0 ? (
+              {popularClickedList.length === 0 ? (
                 <div className="py-8 text-center text-xs text-slate-400">
                   No clicks recorded yet. As visitors discover products, click events will populate here.
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {summary.popularClicked.map((c: any, i: number) => (
+                  {popularClickedList.map((c: any, i: number) => (
                     <div key={i} className="flex items-center justify-between gap-3 text-xs">
                       <div className="min-w-0 flex-1">
                         <span className="font-bold text-slate-800 block truncate">
-                          {c.name || `Product #${c.product_id}`}
+                          {c.name || `Product #${c.product_id || c.productId}`}
                         </span>
                         <span className="text-[11px] text-slate-500 font-mono">
                           ₹{c.price?.toLocaleString('en-IN') || '—'}
                         </span>
                       </div>
                       <span className="px-2 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg font-mono font-bold text-xs shrink-0">
-                        {c.clicks} clicks
+                        {c.clicks || c.click_count || 0} clicks
                       </span>
                     </div>
                   ))}
@@ -304,24 +353,36 @@ export const AdminDashboardPage: React.FC = () => {
                 </button>
               </div>
 
-              {!summary?.recentAudits || summary.recentAudits.length === 0 ? (
+              {recentAuditsList.length === 0 ? (
                 <div className="py-6 text-center text-xs text-slate-400">
                   No audit logs recorded yet.
                 </div>
               ) : (
                 <div className="space-y-2.5">
-                  {summary.recentAudits.slice(0, 5).map((log: any) => (
-                    <div key={log.id} className="text-xs">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="font-semibold text-slate-800 truncate">
-                          {log.user_name || 'System'}: <span className="font-normal text-slate-600">{log.action}</span>
-                        </span>
-                        <span className="text-[10px] text-slate-400 shrink-0 font-mono">
-                          {new Date(log.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </span>
+                  {recentAuditsList.slice(0, 5).map((log: any) => {
+                    const timeStr = (() => {
+                      const rawDate = log.created_at || log.createdAt;
+                      if (!rawDate) return 'Recent';
+                      try {
+                        const d = new Date(rawDate);
+                        return isNaN(d.getTime()) ? 'Recent' : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                      } catch {
+                        return 'Recent';
+                      }
+                    })();
+                    return (
+                      <div key={log.id} className="text-xs">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-semibold text-slate-800 truncate">
+                            {log.user_email || log.userEmail || log.user_name || 'System'}: <span className="font-normal text-slate-600">{log.action}</span>
+                          </span>
+                          <span className="text-[10px] text-slate-400 shrink-0 font-mono">
+                            {timeStr}
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>

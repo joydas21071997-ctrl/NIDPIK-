@@ -72,12 +72,14 @@ async function request<T>(
   if (contentType.includes('application/json')) {
     return await response.json();
   }
-  // Endpoints that must return JSON (auth, admin data) get a definitive error
-  // instead of silently resolving with the hosting SPA shell.
-  if (expectJson) {
-    throw apiUnavailableError(`expected JSON from ${endpoint} but received '${contentType || 'unknown'}'`);
-  }
-  return (await response.text()) as any;
+
+  // If a text/html or non-JSON response was received from an API endpoint, it means
+  // static hosting rewrote the API route to index.html (or an HTML error page was returned).
+  // Throw an API_UNAVAILABLE error so the frontend knows the backend API is unreachable
+  // instead of silently returning a raw HTML string.
+  throw apiUnavailableError(
+    `expected JSON from ${endpoint} but received '${contentType || 'unknown'}'. Backend API is unreachable on this host.`
+  );
 }
 
 export const api = {

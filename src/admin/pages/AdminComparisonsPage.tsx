@@ -16,8 +16,8 @@ import {
 } from 'lucide-react';
 
 export const AdminComparisonsPage: React.FC = () => {
-  const { refreshPublicData, products } = useApp();
-  const [comparisons, setComparisons] = useState<any[]>([]);
+  const { refreshPublicData, products, comparisons: appComparisons } = useApp();
+  const [comparisons, setComparisons] = useState<any[]>(appComparisons || []);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingComp, setEditingComp] = useState<any | null>(null);
@@ -40,9 +40,17 @@ export const AdminComparisonsPage: React.FC = () => {
     try {
       setLoading(true);
       const data = await api.comparisons.getAll();
-      setComparisons(data);
+      if (Array.isArray(data)) {
+        setComparisons(data);
+      } else if (appComparisons && appComparisons.length > 0) {
+        setComparisons(appComparisons);
+      }
     } catch (err: any) {
-      console.error(err);
+      if (appComparisons && appComparisons.length > 0) {
+        setComparisons(appComparisons);
+      } else {
+        console.error(err);
+      }
     } finally {
       setLoading(false);
     }
@@ -51,6 +59,14 @@ export const AdminComparisonsPage: React.FC = () => {
   useEffect(() => {
     loadComparisons();
   }, []);
+
+  useEffect(() => {
+    if (appComparisons && appComparisons.length > 0 && comparisons.length === 0) {
+      setComparisons(appComparisons);
+    }
+  }, [appComparisons]);
+
+  const safeComparisons = Array.isArray(comparisons) ? comparisons : (appComparisons || []);
 
   const openCreateModal = () => {
     setEditingComp(null);
@@ -152,14 +168,14 @@ export const AdminComparisonsPage: React.FC = () => {
         <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
           {loading ? (
             <div className="py-24 text-center text-xs text-slate-400">Loading comparisons...</div>
-          ) : comparisons.length === 0 ? (
+          ) : safeComparisons.length === 0 ? (
             <div className="py-20 text-center space-y-2">
               <Scale className="w-8 h-8 text-slate-300 mx-auto" />
               <p className="text-sm font-semibold text-slate-700">No comparisons found</p>
             </div>
           ) : (
             <div className="divide-y divide-slate-100">
-              {comparisons.map((c) => (
+              {safeComparisons.map((c) => (
                 <div key={c.id} className="p-5 flex items-center justify-between gap-4 hover:bg-slate-50/70 transition-colors">
                   <div className="min-w-0">
                     <span className="font-bold text-xs text-slate-900 block truncate">{c.title}</span>

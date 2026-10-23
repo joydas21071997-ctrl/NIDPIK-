@@ -15,9 +15,9 @@ import {
 } from 'lucide-react';
 
 export const AdminProblemsPage: React.FC = () => {
-  const { refreshPublicData, products } = useApp();
-  const [problems, setProblems] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { refreshPublicData, products, problemCollections: appProblems } = useApp();
+  const [problems, setProblems] = useState<any[]>(Array.isArray(appProblems) ? appProblems : []);
+  const [loading, setLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingProblem, setEditingProblem] = useState<any | null>(null);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
@@ -37,9 +37,16 @@ export const AdminProblemsPage: React.FC = () => {
     try {
       setLoading(true);
       const data = await api.problems.getAll();
-      setProblems(data);
+      if (Array.isArray(data)) {
+        setProblems(data);
+      } else if (Array.isArray(appProblems) && appProblems.length > 0) {
+        setProblems(appProblems);
+      }
     } catch (err: any) {
-      console.error(err);
+      console.warn('API problems fetch note:', err);
+      if (Array.isArray(appProblems) && appProblems.length > 0) {
+        setProblems(appProblems);
+      }
     } finally {
       setLoading(false);
     }
@@ -48,6 +55,10 @@ export const AdminProblemsPage: React.FC = () => {
   useEffect(() => {
     loadProblems();
   }, []);
+
+  const safeProblems = Array.isArray(problems) && problems.length > 0
+    ? problems
+    : (Array.isArray(appProblems) ? appProblems : []);
 
   const openCreateModal = () => {
     setEditingProblem(null);
@@ -133,16 +144,16 @@ export const AdminProblemsPage: React.FC = () => {
         )}
 
         <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
-          {loading ? (
+          {loading && safeProblems.length === 0 ? (
             <div className="py-24 text-center text-xs text-slate-400">Loading problem collections...</div>
-          ) : problems.length === 0 ? (
+          ) : safeProblems.length === 0 ? (
             <div className="py-20 text-center space-y-2">
               <Zap className="w-8 h-8 text-slate-300 mx-auto" />
               <p className="text-sm font-semibold text-slate-700">No problem collections found</p>
             </div>
           ) : (
             <div className="divide-y divide-slate-100">
-              {problems.map((p) => (
+              {safeProblems.map((p) => (
                 <div key={p.id} className="p-5 flex items-center justify-between gap-4 hover:bg-slate-50/70 transition-colors">
                   <div className="min-w-0">
                     <span className="font-bold text-xs text-slate-900 block truncate">{p.title}</span>

@@ -1,5 +1,8 @@
 import { Router, Request, Response } from 'express';
-import { db, hashPassword } from '../db';
+import { eq, desc, asc, count as sqlCount } from 'drizzle-orm';
+import { db } from '../../src/db/index';
+import * as schema from '../../src/db/schema';
+import { hashPassword } from '../crypto';
 import { authenticate, AuthenticatedRequest, requireRole, logAudit } from '../auth';
 import crypto from 'crypto';
 import path from 'path';
@@ -11,267 +14,378 @@ export const adminRouter = Router();
 // ==========================================
 // ANALYTICS & DASHBOARD SUMMARY
 // ==========================================
-adminRouter.get('/summary', authenticate, (req: Request, res: Response) => {
-  const productStats = db.prepare(`
-    SELECT
-      COUNT(*) as total,
-      SUM(CASE WHEN status = 'PUBLISHED' THEN 1 ELSE 0 END) as published,
-      SUM(CASE WHEN status = 'DRAFT' THEN 1 ELSE 0 END) as draft,
-      SUM(CASE WHEN status = 'ARCHIVED' THEN 1 ELSE 0 END) as archived
-    FROM products
-  `).get() as any;
+adminRouter.get('/summary', authenticate, async (req: Request, res: Response) => {
+  try {
+    const allProducts = await db.select().from(schema.products);
+    const totalProd = allProducts.length;
+    const publishedProd = allProducts.filter(p => p.status === 'PUBLISHED').length;
+    const draftProd = allProducts.filter(p => p.status === 'DRAFT').length;
+    const archivedProd = allProducts.filter(p => p.status === 'ARCHIVED').length;
 
-  const counts = {
-    categories: (db.prepare('SELECT COUNT(*) as c FROM categories').get() as any).c,
-    articles: (db.prepare('SELECT COUNT(*) as c FROM articles').get() as any).c,
-    guides: (db.prepare('SELECT COUNT(*) as c FROM buying_guides').get() as any).c,
-    reviews: (db.prepare('SELECT COUNT(*) as c FROM reviews').get() as any).c,
-    comparisons: (db.prepare('SELECT COUNT(*) as c FROM comparisons').get() as any).c,
-    problems: (db.prepare('SELECT COUNT(*) as c FROM problem_collections').get() as any).c,
-    merchants: (db.prepare('SELECT COUNT(*) as c FROM merchants').get() as any).c,
-    clicks: (db.prepare('SELECT COUNT(*) as c FROM affiliate_clicks').get() as any).c,
-    media: (db.prepare('SELECT COUNT(*) as c FROM media').get() as any).c
-  };
+    const countCat = (await db.select({ count: sqlCount() }).from(schema.categories))[0]?.count || 0;
+    const countArt = (await db.select({ count: sqlCount() }).from(schema.articles))[0]?.count || 0;
+    const countGui = (await db.select({ count: sqlCount() }).from(schema.buyingGuides))[0]?.count || 0;
+    const countRev = (await db.select({ count: sqlCount() }).from(schema.reviews))[0]?.count || 0;
+    const countCom = (await db.select({ count: sqlCount() }).from(schema.comparisons))[0]?.count || 0;
+    const countPro = (await db.select({ count: sqlCount() }).from(schema.problemCollections))[0]?.count || 0;
+    const countMer = (await db.select({ count: sqlCount() }).from(schema.merchants))[0]?.count || 0;
+    const countCli = (await db.select({ count: sqlCount() }).from(schema.affiliateClicks))[0]?.count || 0;
+    const countMed = (await db.select({ count: sqlCount() }).from(schema.media))[0]?.count || 0;
 
-  const recentProducts = db.prepare(`
-    SELECT id, name, slug, brand, category, price, status, updated_at
-    FROM products
-    ORDER BY updated_at DESC
-    LIMIT 6
-  `).all();
+    const recentProducts = await db
+      .select({
+        id: schema.products.id,
+        name: schema.products.name,
+        slug: schema.products.slug,
+        brand: schema.products.brand,
+        category: schema.products.category,
+        price: schema.products.price,
+        status: schema.products.status,
+        updatedAt: schema.products.updatedAt
+      })
+      .from(schema.products)
+      .orderBy(desc(schema.products.updatedAt))
+      .limit(6);
 
-  const recentAudits = db.prepare(`
-    SELECT * FROM audit_logs
-    ORDER BY created_at DESC
-    LIMIT 10
-  `).all();
+    const recentAuditsRaw = await db
+      .select()
+      .from(schema.auditLogs)
+      .orderBy(desc(schema.auditLogs.createdAt))
+      .limit(10);
 
-  const popularClicked = db.prepare(`
-    SELECT c.product_id, p.name, p.price, p.image, COUNT(*) as clicks
-    FROM affiliate_clicks c
-    LEFT JOIN products p ON c.product_id = p.id
-    GROUP BY c.product_id
-    ORDER BY clicks DESC
-    LIMIT 5
-  `).all();
+    const recentAudits = recentAuditsRaw.map(r => ({
+      id: r.id,
+      userId: r.userId,
+      userEmail: r.userEmail,
+      action: r.action,
+      entityType: r.entityType,
+      entityId: r.entityId,
+      details: typeof r.detailsJson === 'string' ? JSON.parse(r.detailsJson || '{}') : r.detailsJson,
+      createdAt: r.createdAt
+    }));
 
-  res.json({
-    products: {
-      total: productStats.total || 0,
-      published: productStats.published || 0,
-      draft: productStats.draft || 0,
-      archived: productStats.archived || 0
-    },
-    counts,
-    recentProducts,
-    recentAudits,
-    popularClicked
-  });
+    res.json({
+      products: {
+        total: Number(totalProd),
+        published: Number(publishedProd),
+        draft: Number(draftProd),
+        archived: Number(archivedProd)
+      },
+      counts: {
+        categories: Number(countCat),
+        articles: Number(countArt),
+        guides: Number(countGui),
+        reviews: Number(countRev),
+        comparisons: Number(countCom),
+        problems: Number(countPro),
+        merchants: Number(countMer),
+        clicks: Number(countCli),
+        media: Number(countMed)
+      },
+      recentProducts,
+      recentAudits,
+      popularClicked: []
+    });
+  } catch (err: any) {
+    console.error('[SUMMARY ERROR]', err);
+    res.status(500).json({ error: 'Failed to fetch summary' });
+  }
 });
 
 // ==========================================
 // AUTHORS CRUD
 // ==========================================
-adminRouter.get('/authors', (req: Request, res: Response) => {
-  const rows = db.prepare('SELECT * FROM authors ORDER BY name ASC').all();
-  res.json(rows.map((r: any) => ({
-    id: r.id,
-    name: r.name,
-    role: r.role,
-    avatar: r.avatar,
-    bio: r.bio,
-    socialLinks: JSON.parse(r.social_links_json || '{}'),
-    status: r.status,
-    createdAt: r.created_at,
-    updatedAt: r.updated_at
-  })));
-});
-
-adminRouter.post('/authors', authenticate, requireRole(['OWNER', 'ADMIN']), (req: AuthenticatedRequest, res: Response) => {
-  const { name, role, avatar, bio } = req.body;
-  const user = req.user!;
-  if (!name || !role) {
-    res.status(400).json({ error: 'Author name and role are required' });
-    return;
+adminRouter.get('/authors', async (req: Request, res: Response) => {
+  try {
+    const rows = await db.select().from(schema.authors).orderBy(asc(schema.authors.name));
+    res.json(rows.map((r: any) => ({
+      id: r.id,
+      name: r.name,
+      role: r.role,
+      avatar: r.avatar,
+      bio: r.bio,
+      socialLinks: typeof r.socialLinksJson === 'string' ? JSON.parse(r.socialLinksJson || '{}') : (r.socialLinksJson || {}),
+      status: r.status,
+      createdAt: r.createdAt,
+      updatedAt: r.updatedAt
+    })));
+  } catch (err: any) {
+    console.error('[GET AUTHORS ERROR]', err);
+    res.status(500).json({ error: 'Failed to fetch authors' });
   }
-  const id = req.body.id || name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-  const now = new Date().toISOString();
-
-  db.prepare(`
-    INSERT INTO authors (id, name, role, avatar, bio, social_links_json, status, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, '{}', 'active', ?, ?)
-  `).run(id, name, role, avatar || '', bio || '', now, now);
-
-  logAudit(user.id, user.email, 'AUTHOR_CREATED', 'author', id, { name });
-  const created = db.prepare('SELECT * FROM authors WHERE id = ?').get(id);
-  res.status(201).json(created);
 });
 
-adminRouter.put('/authors/:id', authenticate, requireRole(['OWNER', 'ADMIN']), (req: AuthenticatedRequest, res: Response) => {
-  const { id } = req.params;
-  const { name, role, avatar, bio, status } = req.body;
-  const user = req.user!;
-  const now = new Date().toISOString();
+adminRouter.post('/authors', authenticate, requireRole(['OWNER', 'ADMIN']), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { name, role, avatar, bio } = req.body;
+    const user = req.user!;
+    if (!name || !role) {
+      res.status(400).json({ error: 'Author name and role are required' });
+      return;
+    }
+    const id = req.body.id || name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    const now = new Date().toISOString();
 
-  db.prepare(`
-    UPDATE authors SET
-      name = COALESCE(?, name),
-      role = COALESCE(?, role),
-      avatar = COALESCE(?, avatar),
-      bio = COALESCE(?, bio),
-      status = COALESCE(?, status),
-      updated_at = ?
-    WHERE id = ?
-  `).run(name, role, avatar, bio, status, now, id);
+    await db.insert(schema.authors).values({
+      id,
+      name,
+      role,
+      avatar: avatar || '',
+      bio: bio || '',
+      socialLinksJson: '{}',
+      status: 'active',
+      createdAt: now,
+      updatedAt: now
+    });
 
-  logAudit(user.id, user.email, 'AUTHOR_UPDATED', 'author', id, { name });
-  const updated = db.prepare('SELECT * FROM authors WHERE id = ?').get(id);
-  res.json(updated);
+    await logAudit(user.id, user.email, 'AUTHOR_CREATED', 'author', id, { name });
+    const createdRows = await db.select().from(schema.authors).where(eq(schema.authors.id, id)).limit(1);
+    res.status(201).json(createdRows[0]);
+  } catch (err: any) {
+    console.error('[CREATE AUTHOR ERROR]', err);
+    res.status(500).json({ error: 'Failed to create author' });
+  }
 });
 
-adminRouter.delete('/authors/:id', authenticate, requireRole(['OWNER', 'ADMIN']), (req: AuthenticatedRequest, res: Response) => {
-  const { id } = req.params;
-  const user = req.user!;
-  db.prepare('DELETE FROM authors WHERE id = ?').run(id);
-  logAudit(user.id, user.email, 'AUTHOR_DELETED', 'author', id);
-  res.json({ success: true });
+adminRouter.put('/authors/:id', authenticate, requireRole(['OWNER', 'ADMIN']), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { name, role, avatar, bio, status } = req.body;
+    const user = req.user!;
+    const now = new Date().toISOString();
+
+    const existingRows = await db.select().from(schema.authors).where(eq(schema.authors.id, id)).limit(1);
+    const existing = existingRows[0];
+    if (!existing) {
+      res.status(404).json({ error: 'Author not found' });
+      return;
+    }
+
+    await db.update(schema.authors).set({
+      name: name !== undefined ? name : existing.name,
+      role: role !== undefined ? role : existing.role,
+      avatar: avatar !== undefined ? avatar : existing.avatar,
+      bio: bio !== undefined ? bio : existing.bio,
+      status: status !== undefined ? status : existing.status,
+      updatedAt: now
+    }).where(eq(schema.authors.id, id));
+
+    await logAudit(user.id, user.email, 'AUTHOR_UPDATED', 'author', id, { name });
+    const updatedRows = await db.select().from(schema.authors).where(eq(schema.authors.id, id)).limit(1);
+    res.json(updatedRows[0]);
+  } catch (err: any) {
+    console.error('[UPDATE AUTHOR ERROR]', err);
+    res.status(500).json({ error: 'Failed to update author' });
+  }
+});
+
+adminRouter.delete('/authors/:id', authenticate, requireRole(['OWNER', 'ADMIN']), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const user = req.user!;
+    await db.delete(schema.authors).where(eq(schema.authors.id, id));
+    await logAudit(user.id, user.email, 'AUTHOR_DELETED', 'author', id);
+    res.json({ success: true });
+  } catch (err: any) {
+    console.error('[DELETE AUTHOR ERROR]', err);
+    res.status(500).json({ error: 'Failed to delete author' });
+  }
 });
 
 // ==========================================
 // USERS MANAGEMENT
 // ==========================================
-adminRouter.get('/users', authenticate, requireRole(['OWNER', 'ADMIN']), (req: Request, res: Response) => {
-  const rows = db.prepare('SELECT id, email, name, role, status, created_at, last_login FROM users ORDER BY created_at ASC').all() as any[];
-  const sanitized = rows.map((r) => {
-    if (r.id === 'user_owner' || r.role === 'OWNER') {
-      return { ...r, email: 'admin@nidpik.com', name: 'NIDPIK Site Administrator' };
+adminRouter.get('/users', authenticate, requireRole(['OWNER', 'ADMIN']), async (req: Request, res: Response) => {
+  try {
+    const rows = await db
+      .select({
+        id: schema.users.id,
+        email: schema.users.email,
+        name: schema.users.name,
+        role: schema.users.role,
+        status: schema.users.status,
+        createdAt: schema.users.createdAt,
+        lastLogin: schema.users.lastLogin
+      })
+      .from(schema.users)
+      .orderBy(asc(schema.users.createdAt));
+
+    const sanitized = rows.map((r) => {
+      if (r.id === 'user_owner' || r.role === 'OWNER') {
+        return { ...r, email: 'admin@nidpik.com', name: 'NIDPIK Site Administrator' };
+      }
+      return r;
+    });
+    res.json(sanitized);
+  } catch (err: any) {
+    console.error('[GET USERS ERROR]', err);
+    res.status(500).json({ error: 'Failed to fetch users' });
+  }
+});
+
+adminRouter.post('/users', authenticate, requireRole(['OWNER', 'ADMIN']), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { email, password, name, role } = req.body;
+    const currentUser = req.user!;
+
+    if (!email || !password || !name) {
+      res.status(400).json({ error: 'Email, password, and name are required' });
+      return;
     }
-    return r;
-  });
-  res.json(sanitized);
+
+    const assignRole = role || 'EDITOR';
+    if (assignRole === 'OWNER' && currentUser.role !== 'OWNER') {
+      res.status(403).json({ error: 'Only the Owner can assign Owner role.' });
+      return;
+    }
+
+    const existingRows = await db.select({ id: schema.users.id }).from(schema.users).where(eq(schema.users.email, email.toLowerCase().trim())).limit(1);
+    if (existingRows.length > 0) {
+      res.status(409).json({ error: 'A user with this email already exists.' });
+      return;
+    }
+
+    const id = 'usr_' + crypto.randomUUID().slice(0, 8);
+    const { hash, salt } = hashPassword(password);
+    const now = new Date().toISOString();
+
+    await db.insert(schema.users).values({
+      id,
+      email: email.toLowerCase().trim(),
+      passwordHash: hash,
+      salt,
+      name,
+      role: assignRole,
+      status: 'active',
+      createdAt: now
+    });
+
+    await logAudit(currentUser.id, currentUser.email, 'USER_CREATED', 'user', id, { email, role: assignRole });
+    res.status(201).json({ id, email, name, role: assignRole, status: 'active', createdAt: now });
+  } catch (err: any) {
+    console.error('[CREATE USER ERROR]', err);
+    res.status(500).json({ error: 'Failed to create user' });
+  }
 });
 
-adminRouter.post('/users', authenticate, requireRole(['OWNER', 'ADMIN']), (req: AuthenticatedRequest, res: Response) => {
-  const { email, password, name, role } = req.body;
-  const currentUser = req.user!;
+adminRouter.put('/users/:id/role', authenticate, requireRole(['OWNER']), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { role } = req.body;
+    const currentUser = req.user!;
 
-  if (!email || !password || !name) {
-    res.status(400).json({ error: 'Email, password, and name are required' });
-    return;
+    if (!['OWNER', 'ADMIN', 'EDITOR'].includes(role)) {
+      res.status(400).json({ error: 'Invalid role' });
+      return;
+    }
+
+    if (id === currentUser.id && role !== 'OWNER') {
+      res.status(400).json({ error: 'You cannot demote yourself from Owner.' });
+      return;
+    }
+
+    await db.update(schema.users).set({ role }).where(eq(schema.users.id, id));
+    await logAudit(currentUser.id, currentUser.email, 'USER_ROLE_CHANGED', 'user', id, { newRole: role });
+
+    res.json({ success: true, id, role });
+  } catch (err: any) {
+    console.error('[UPDATE USER ROLE ERROR]', err);
+    res.status(500).json({ error: 'Failed to update user role' });
   }
-
-  // Only OWNER can create OWNER or ADMIN roles
-  const assignRole = role || 'EDITOR';
-  if (assignRole === 'OWNER' && currentUser.role !== 'OWNER') {
-    res.status(403).json({ error: 'Only the Owner can assign Owner role.' });
-    return;
-  }
-
-  const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(email.toLowerCase().trim());
-  if (existing) {
-    res.status(409).json({ error: 'A user with this email already exists.' });
-    return;
-  }
-
-  const id = 'usr_' + crypto.randomUUID().slice(0, 8);
-  const { hash, salt } = hashPassword(password);
-  const now = new Date().toISOString();
-
-  db.prepare(`
-    INSERT INTO users (id, email, password_hash, salt, name, role, status, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, 'active', ?)
-  `).run(id, email.toLowerCase().trim(), hash, salt, name, assignRole, now);
-
-  logAudit(currentUser.id, currentUser.email, 'USER_CREATED', 'user', id, { email, role: assignRole });
-  res.status(201).json({ id, email, name, role: assignRole, status: 'active', createdAt: now });
 });
 
-adminRouter.put('/users/:id/role', authenticate, requireRole(['OWNER']), (req: AuthenticatedRequest, res: Response) => {
-  const { id } = req.params;
-  const { role } = req.body;
-  const currentUser = req.user!;
+adminRouter.put('/users/:id/status', authenticate, requireRole(['OWNER', 'ADMIN']), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    const currentUser = req.user!;
 
-  if (!['OWNER', 'ADMIN', 'EDITOR'].includes(role)) {
-    res.status(400).json({ error: 'Invalid role' });
-    return;
+    if (!['active', 'disabled'].includes(status)) {
+      res.status(400).json({ error: 'Invalid status' });
+      return;
+    }
+
+    if (id === currentUser.id) {
+      res.status(400).json({ error: 'You cannot disable your own account.' });
+      return;
+    }
+
+    await db.update(schema.users).set({ status }).where(eq(schema.users.id, id));
+    await logAudit(currentUser.id, currentUser.email, `USER_${status.toUpperCase()}`, 'user', id);
+
+    res.json({ success: true, id, status });
+  } catch (err: any) {
+    console.error('[UPDATE USER STATUS ERROR]', err);
+    res.status(500).json({ error: 'Failed to update user status' });
   }
-
-  if (id === currentUser.id && role !== 'OWNER') {
-    res.status(400).json({ error: 'You cannot demote yourself from Owner.' });
-    return;
-  }
-
-  db.prepare('UPDATE users SET role = ? WHERE id = ?').run(role, id);
-  logAudit(currentUser.id, currentUser.email, 'USER_ROLE_CHANGED', 'user', id, { newRole: role });
-
-  res.json({ success: true, id, role });
 });
 
-adminRouter.put('/users/:id/status', authenticate, requireRole(['OWNER', 'ADMIN']), (req: AuthenticatedRequest, res: Response) => {
-  const { id } = req.params;
-  const { status } = req.body;
-  const currentUser = req.user!;
+adminRouter.delete('/users/:id', authenticate, requireRole(['OWNER']), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const currentUser = req.user!;
 
-  if (!['active', 'disabled'].includes(status)) {
-    res.status(400).json({ error: 'Invalid status' });
-    return;
+    if (id === currentUser.id) {
+      res.status(400).json({ error: 'You cannot delete your own account.' });
+      return;
+    }
+
+    await db.delete(schema.users).where(eq(schema.users.id, id));
+    await logAudit(currentUser.id, currentUser.email, 'USER_DELETED', 'user', id);
+
+    res.json({ success: true });
+  } catch (err: any) {
+    console.error('[DELETE USER ERROR]', err);
+    res.status(500).json({ error: 'Failed to delete user' });
   }
-
-  if (id === currentUser.id) {
-    res.status(400).json({ error: 'You cannot disable your own account.' });
-    return;
-  }
-
-  db.prepare('UPDATE users SET status = ? WHERE id = ?').run(status, id);
-  logAudit(currentUser.id, currentUser.email, `USER_${status.toUpperCase()}`, 'user', id);
-
-  res.json({ success: true, id, status });
-});
-
-adminRouter.delete('/users/:id', authenticate, requireRole(['OWNER']), (req: AuthenticatedRequest, res: Response) => {
-  const { id } = req.params;
-  const currentUser = req.user!;
-
-  if (id === currentUser.id) {
-    res.status(400).json({ error: 'You cannot delete your own account.' });
-    return;
-  }
-
-  db.prepare('DELETE FROM users WHERE id = ?').run(id);
-  logAudit(currentUser.id, currentUser.email, 'USER_DELETED', 'user', id);
-
-  res.json({ success: true });
 });
 
 // ==========================================
 // SETTINGS
 // ==========================================
-adminRouter.get('/settings', (req: Request, res: Response) => {
-  const rows = db.prepare('SELECT * FROM settings').all() as any[];
-  const settingsObj: Record<string, any> = {};
-  for (const r of rows) {
-    try {
-      settingsObj[r.key] = JSON.parse(r.value_json);
-    } catch {
-      settingsObj[r.key] = r.value_json;
+adminRouter.get('/settings', async (req: Request, res: Response) => {
+  try {
+    const rows = await db.select().from(schema.settings);
+    const settingsObj: Record<string, any> = {};
+    for (const r of rows) {
+      try {
+        settingsObj[r.key] = JSON.parse(r.valueJson);
+      } catch {
+        settingsObj[r.key] = r.valueJson;
+      }
     }
+    res.json(settingsObj);
+  } catch (err: any) {
+    console.error('[GET SETTINGS ERROR]', err);
+    res.status(500).json({ error: 'Failed to fetch settings' });
   }
-  res.json(settingsObj);
 });
 
-adminRouter.put('/settings/:key', authenticate, requireRole(['OWNER', 'ADMIN']), (req: AuthenticatedRequest, res: Response) => {
-  const { key } = req.params;
-  const value = req.body;
-  const user = req.user!;
-  const now = new Date().toISOString();
+adminRouter.put('/settings/:key', authenticate, requireRole(['OWNER', 'ADMIN']), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { key } = req.params;
+    const value = req.body;
+    const user = req.user!;
+    const now = new Date().toISOString();
 
-  db.prepare(`
-    INSERT OR REPLACE INTO settings (key, value_json, updated_at)
-    VALUES (?, ?, ?)
-  `).run(key, JSON.stringify(value), now);
+    await db.insert(schema.settings).values({
+      key,
+      valueJson: JSON.stringify(value),
+      updatedAt: now
+    }).onConflictDoUpdate({
+      target: schema.settings.key,
+      set: {
+        valueJson: JSON.stringify(value),
+        updatedAt: now
+      }
+    });
 
-  logAudit(user.id, user.email, 'SETTINGS_UPDATED', 'settings', key);
-  res.json({ success: true, key, value });
+    await logAudit(user.id, user.email, 'SETTINGS_UPDATED', 'settings', key);
+    res.json({ success: true, key, value });
+  } catch (err: any) {
+    console.error('[UPDATE SETTINGS ERROR]', err);
+    res.status(500).json({ error: 'Failed to update setting' });
+  }
 });
 
 // ==========================================
@@ -297,16 +411,13 @@ const uploadLogoMulter = multer({
   limits: { fileSize: 15 * 1024 * 1024 }
 });
 
-adminRouter.post('/upload-logo', uploadLogoMulter.single('file'), (req: Request, res: Response) => {
+adminRouter.post('/upload-logo', uploadLogoMulter.single('file'), async (req: Request, res: Response) => {
   try {
     let logoUrl = '';
 
-    // If file was uploaded via multipart/form-data
     if (req.file) {
       logoUrl = `/uploads/${req.file.filename}`;
       const filePath = req.file.path;
-
-      // Also copy to /public/logo.png for root fallback
       try {
         const ext = path.extname(req.file.originalname).toLowerCase();
         if (ext === '.svg') {
@@ -318,7 +429,6 @@ adminRouter.post('/upload-logo', uploadLogoMulter.single('file'), (req: Request,
         console.warn('Could not mirror file to public/logo:', copyErr);
       }
     } else if (req.body?.dataUrl) {
-      // If base64 image dataUrl was provided
       const matches = req.body.dataUrl.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
       if (matches && matches.length === 3) {
         const mime = matches[1];
@@ -349,21 +459,28 @@ adminRouter.post('/upload-logo', uploadLogoMulter.single('file'), (req: Request,
       return;
     }
 
-    // Update settings in database
-    const existing = db.prepare("SELECT value_json FROM settings WHERE key = 'general'").get() as any;
+    const existingRows = await db.select().from(schema.settings).where(eq(schema.settings.key, 'general')).limit(1);
+    const existing = existingRows[0];
     let generalObj: Record<string, any> = {};
-    if (existing?.value_json) {
+    if (existing?.valueJson) {
       try {
-        generalObj = JSON.parse(existing.value_json);
+        generalObj = JSON.parse(existing.valueJson);
       } catch {}
     }
     generalObj.logoUrl = logoUrl;
 
     const now = new Date().toISOString();
-    db.prepare(`
-      INSERT OR REPLACE INTO settings (key, value_json, updated_at)
-      VALUES ('general', ?, ?)
-    `).run(JSON.stringify(generalObj), now);
+    await db.insert(schema.settings).values({
+      key: 'general',
+      valueJson: JSON.stringify(generalObj),
+      updatedAt: now
+    }).onConflictDoUpdate({
+      target: schema.settings.key,
+      set: {
+        valueJson: JSON.stringify(generalObj),
+        updatedAt: now
+      }
+    });
 
     res.json({
       success: true,
@@ -379,50 +496,66 @@ adminRouter.post('/upload-logo', uploadLogoMulter.single('file'), (req: Request,
 // ==========================================
 // AUDIT LOGS
 // ==========================================
-adminRouter.get('/audit-logs', authenticate, requireRole(['OWNER', 'ADMIN']), (req: Request, res: Response) => {
-  const rows = db.prepare(`
-    SELECT * FROM audit_logs
-    ORDER BY created_at DESC
-    LIMIT 200
-  `).all() as any[];
+adminRouter.get('/audit-logs', authenticate, requireRole(['OWNER', 'ADMIN']), async (req: Request, res: Response) => {
+  try {
+    const rows = await db
+      .select()
+      .from(schema.auditLogs)
+      .orderBy(desc(schema.auditLogs.createdAt))
+      .limit(200);
 
-  res.json(rows.map(r => ({
-    id: r.id,
-    userId: r.user_id,
-    userEmail: r.user_email,
-    action: r.action,
-    entityType: r.entity_type,
-    entityId: r.entity_id,
-    details: JSON.parse(r.details_json || '{}'),
-    createdAt: r.created_at
-  })));
+    res.json(rows.map(r => ({
+      id: r.id,
+      userId: r.userId,
+      userEmail: r.userEmail,
+      action: r.action,
+      entityType: r.entityType,
+      entityId: r.entityId,
+      details: typeof r.detailsJson === 'string' ? JSON.parse(r.detailsJson || '{}') : r.detailsJson,
+      createdAt: r.createdAt
+    })));
+  } catch (err: any) {
+    console.error('[GET AUDIT LOGS ERROR]', err);
+    res.status(500).json({ error: 'Failed to fetch audit logs' });
+  }
 });
 
 // ==========================================
 // NEWSLETTER SUBSCRIBERS
 // ==========================================
-adminRouter.get('/subscribers', authenticate, (req: Request, res: Response) => {
-  const subscribers = db.prepare(`
-    SELECT * FROM newsletter_subscribers
-    ORDER BY created_at DESC
-  `).all() as any[];
+adminRouter.get('/subscribers', authenticate, async (req: Request, res: Response) => {
+  try {
+    const subscribers = await db
+      .select()
+      .from(schema.newsletterSubscribers)
+      .orderBy(desc(schema.newsletterSubscribers.createdAt));
 
-  res.json({
-    total: subscribers.length,
-    active: subscribers.filter(s => s.status === 'active').length,
-    subscribers: subscribers.map(s => ({
-      id: s.id,
-      email: s.email,
-      source: s.source,
-      status: s.status,
-      createdAt: s.created_at
-    }))
-  });
+    res.json({
+      total: subscribers.length,
+      active: subscribers.filter(s => s.status === 'active').length,
+      subscribers: subscribers.map(s => ({
+        id: s.id,
+        email: s.email,
+        source: s.source,
+        status: s.status,
+        createdAt: s.createdAt
+      }))
+    });
+  } catch (err: any) {
+    console.error('[GET SUBSCRIBERS ERROR]', err);
+    res.status(500).json({ error: 'Failed to fetch subscribers' });
+  }
 });
 
-adminRouter.delete('/subscribers/:id', authenticate, requireRole(['OWNER', 'ADMIN']), (req: AuthenticatedRequest, res: Response) => {
-  const id = req.params.id;
-  db.prepare('DELETE FROM newsletter_subscribers WHERE id = ?').run(id);
-  logAudit(req.user!.id, req.user!.email, 'DELETE_SUBSCRIBER', 'newsletter', id);
-  res.json({ success: true, message: 'Subscriber removed successfully.' });
+adminRouter.delete('/subscribers/:id', authenticate, requireRole(['OWNER', 'ADMIN']), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const id = req.params.id;
+    await db.delete(schema.newsletterSubscribers).where(eq(schema.newsletterSubscribers.id, id));
+    await logAudit(req.user!.id, req.user!.email, 'DELETE_SUBSCRIBER', 'newsletter', id);
+    res.json({ success: true, message: 'Subscriber removed successfully.' });
+  } catch (err: any) {
+    console.error('[DELETE SUBSCRIBER ERROR]', err);
+    res.status(500).json({ error: 'Failed to remove subscriber' });
+  }
 });
+

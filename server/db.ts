@@ -427,7 +427,7 @@ function seedDatabaseIfEmpty() {
 
   // 1. Seed Users (Configured via secure environment variables, never committed to Git)
   const ownerEmail = (process.env.ADMIN_OWNER_EMAIL || 'admin@nidpik.com').trim().toLowerCase();
-  const ownerPassword = process.env.ADMIN_OWNER_PASSWORD || 'Jd21251997*#';
+  const ownerPassword = process.env.ADMIN_OWNER_PASSWORD || '';
   const secondaryEmail = process.env.ADMIN_SECONDARY_EMAIL ? process.env.ADMIN_SECONDARY_EMAIL.trim().toLowerCase() : null;
 
   const usersToSeed: Array<{ id: string; email: string; name: string; role: string; password: string }> = [

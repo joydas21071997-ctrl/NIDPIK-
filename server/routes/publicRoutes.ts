@@ -1,5 +1,7 @@
 import { Router, Request, Response } from 'express';
-import { db } from '../db';
+import { db } from '../../src/db';
+import * as schema from '../../src/db/schema';
+import { eq, and, or, ilike, lte, asc, desc } from 'drizzle-orm';
 import path from 'path';
 import fs from 'fs';
 import multer from 'multer';
@@ -38,56 +40,80 @@ export const publicRouter = Router();
 
 // GET /api/public/bootstrap
 // Returns full live published catalog for instant frontend synchronization
-publicRouter.get('/bootstrap', (req: Request, res: Response) => {
-  const products = db.prepare("SELECT * FROM products WHERE status = 'PUBLISHED' ORDER BY updated_at DESC").all().map(formatProductRow);
-  const categories = db.prepare("SELECT * FROM categories WHERE status = 'PUBLISHED' ORDER BY order_index ASC").all().map(formatCategoryRow);
-  const articles = db.prepare("SELECT * FROM articles WHERE status = 'PUBLISHED' ORDER BY created_at DESC").all().map(formatArticleRow);
-  const guides = db.prepare("SELECT * FROM buying_guides WHERE status = 'PUBLISHED' ORDER BY created_at DESC").all().map(formatGuideRow);
-  const comparisons = db.prepare("SELECT * FROM comparisons WHERE status = 'PUBLISHED' ORDER BY created_at DESC").all().map(formatComparisonRow);
-  const reviews = db.prepare("SELECT * FROM reviews WHERE status = 'PUBLISHED' ORDER BY created_at DESC").all().map(formatReviewRow);
-  const problems = db.prepare("SELECT * FROM problem_collections WHERE status = 'PUBLISHED' ORDER BY created_at ASC").all().map(formatProblemRow);
-  const budgets = db.prepare('SELECT * FROM budget_tiers ORDER BY amount ASC').all().map((r: any) => ({
-    amount: Number(r.amount),
-    title: r.title,
-    slug: r.slug,
-    headline: r.headline,
-    description: r.description,
-    recommendedCategory: r.recommended_category
-  }));
-  const merchants = db.prepare("SELECT * FROM merchants WHERE status = 'active' ORDER BY name ASC").all().map(formatMerchantRow);
-  const authors = db.prepare("SELECT * FROM authors WHERE status = 'active'").all().map((r: any) => ({
-    id: r.id,
-    name: r.name,
-    role: r.role,
-    avatar: r.avatar,
-    bio: r.bio
-  }));
+publicRouter.get('/bootstrap', async (req: Request, res: Response) => {
+  try {
+    const rawProducts = await db.select().from(schema.products).where(eq(schema.products.status, 'PUBLISHED')).orderBy(desc(schema.products.updatedAt));
+    const products = rawProducts.map(formatProductRow);
 
-  // Settings
-  const settingsRows = db.prepare('SELECT * FROM settings').all() as any[];
-  const settings: Record<string, any> = {};
-  for (const s of settingsRows) {
-    try {
-      settings[s.key] = JSON.parse(s.value_json);
-    } catch {
-      settings[s.key] = s.value_json;
+    const rawCategories = await db.select().from(schema.categories).where(eq(schema.categories.status, 'PUBLISHED')).orderBy(asc(schema.categories.orderIndex));
+    const categories = rawCategories.map(formatCategoryRow);
+
+    const rawArticles = await db.select().from(schema.articles).where(eq(schema.articles.status, 'PUBLISHED')).orderBy(desc(schema.articles.createdAt));
+    const articles = rawArticles.map(formatArticleRow);
+
+    const rawGuides = await db.select().from(schema.buyingGuides).where(eq(schema.buyingGuides.status, 'PUBLISHED')).orderBy(desc(schema.buyingGuides.createdAt));
+    const guides = rawGuides.map(formatGuideRow);
+
+    const rawComparisons = await db.select().from(schema.comparisons).where(eq(schema.comparisons.status, 'PUBLISHED')).orderBy(desc(schema.comparisons.createdAt));
+    const comparisons = rawComparisons.map(formatComparisonRow);
+
+    const rawReviews = await db.select().from(schema.reviews).where(eq(schema.reviews.status, 'PUBLISHED')).orderBy(desc(schema.reviews.createdAt));
+    const reviews = rawReviews.map(formatReviewRow);
+
+    const rawProblems = await db.select().from(schema.problemCollections).where(eq(schema.problemCollections.status, 'PUBLISHED')).orderBy(asc(schema.problemCollections.createdAt));
+    const problems = rawProblems.map(formatProblemRow);
+
+    const rawBudgets = await db.select().from(schema.budgetTiers).orderBy(asc(schema.budgetTiers.amount));
+    const budgets = rawBudgets.map((r: any) => ({
+      amount: Number(r.amount),
+      title: r.title,
+      slug: r.slug,
+      headline: r.headline,
+      description: r.description,
+      recommendedCategory: r.recommendedCategory ?? r.recommended_category
+    }));
+
+    const rawMerchants = await db.select().from(schema.merchants).where(eq(schema.merchants.status, 'active')).orderBy(asc(schema.merchants.name));
+    const merchants = rawMerchants.map(formatMerchantRow);
+
+    const rawAuthors = await db.select().from(schema.authors).where(eq(schema.authors.status, 'active'));
+    const authors = rawAuthors.map((r: any) => ({
+      id: r.id,
+      name: r.name,
+      role: r.role,
+      avatar: r.avatar,
+      bio: r.bio
+    }));
+
+    // Settings
+    const settingsRows = await db.select().from(schema.settings);
+    const settingsObj: Record<string, any> = {};
+    for (const s of settingsRows) {
+      try {
+        settingsObj[s.key] = JSON.parse(s.valueJson);
+      } catch {
+        settingsObj[s.key] = s.valueJson;
+      }
     }
-  }
 
-  res.json({
-    products,
-    categories,
-    articles,
-    buyingGuides: guides,
-    comparisons,
-    reviews,
-    problemCollections: problems,
-    budgetTiers: budgets,
-    merchants,
-    authors,
-    settings,
-    serverTime: new Date().toISOString()
-  });
+    res.json({
+      products,
+      categories,
+      articles,
+      buyingGuides: guides,
+      comparisons,
+      reviews,
+      problemCollections: problems,
+      budgetTiers: budgets,
+      merchants,
+      authors,
+      settings: settingsObj,
+      serverTime: new Date().toISOString()
+    });
+  } catch (err: any) {
+    console.error('Public bootstrap error:', err);
+    res.status(500).json({ error: 'Failed to load bootstrap data' });
+  }
 });
 
 // POST /api/public/update-logo
@@ -180,20 +206,29 @@ publicRouter.post('/update-logo', uploadPublicLogo.single('file'), async (req: R
     }
 
     // Persist to database settings
-    const existing = db.prepare("SELECT value_json FROM settings WHERE key = 'general'").get() as any;
+    const existing = await db.select().from(schema.settings).where(eq(schema.settings.key, 'general')).limit(1);
     let generalObj: Record<string, any> = {};
-    if (existing?.value_json) {
+    if (existing[0]?.valueJson) {
       try {
-        generalObj = JSON.parse(existing.value_json);
+        generalObj = JSON.parse(existing[0].valueJson);
       } catch {}
     }
     generalObj.logoUrl = logoUrl;
 
     const now = new Date().toISOString();
-    db.prepare(`
-      INSERT OR REPLACE INTO settings (key, value_json, updated_at)
-      VALUES ('general', ?, ?)
-    `).run(JSON.stringify(generalObj), now);
+    await db.insert(schema.settings)
+      .values({
+        key: 'general',
+        valueJson: JSON.stringify(generalObj),
+        updatedAt: now
+      })
+      .onConflictDoUpdate({
+        target: schema.settings.key,
+        set: {
+          valueJson: JSON.stringify(generalObj),
+          updatedAt: now
+        }
+      });
 
     res.json({
       success: true,
@@ -208,64 +243,131 @@ publicRouter.post('/update-logo', uploadPublicLogo.single('file'), async (req: R
 });
 
 // GET /api/public/search?q=...
-publicRouter.get('/search', (req: Request, res: Response) => {
-  const rawQ = String(req.query.q || '').trim();
-  if (!rawQ) {
+publicRouter.get('/search', async (req: Request, res: Response) => {
+  try {
+    const rawQ = String(req.query.q || '').trim();
+    if (!rawQ) {
+      res.json({
+        products: [],
+        guides: [],
+        comparisons: [],
+        articles: [],
+        categories: [],
+        problems: []
+      });
+      return;
+    }
+
+    // Detect price numbers, e.g. "under 500", "under ₹2000"
+    const priceMatch = rawQ.match(/under\s*₹?\s*(\d+)/i) || rawQ.match(/₹\s*(\d+)/i);
+    const maxPrice = priceMatch ? parseInt(priceMatch[1], 10) : null;
+
+    const likeQ = `%${rawQ}%`;
+
+    const productConditions: any[] = [
+      eq(schema.products.status, 'PUBLISHED'),
+      or(
+        ilike(schema.products.name, likeQ),
+        ilike(schema.products.brand, likeQ),
+        ilike(schema.products.category, likeQ),
+        ilike(schema.products.subcategory, likeQ),
+        ilike(schema.products.shortDescription, likeQ),
+        ilike(schema.products.bestFor, likeQ)
+      )
+    ];
+
+    if (maxPrice !== null) {
+      productConditions.push(lte(schema.products.price, maxPrice));
+    }
+
+    const rawProducts = await db.select()
+      .from(schema.products)
+      .where(and(...productConditions))
+      .orderBy(asc(schema.products.price))
+      .limit(20);
+
+    const matchedProducts = rawProducts.map(formatProductRow);
+
+    const rawGuides = await db.select()
+      .from(schema.buyingGuides)
+      .where(and(
+        eq(schema.buyingGuides.status, 'PUBLISHED'),
+        or(
+          ilike(schema.buyingGuides.title, likeQ),
+          ilike(schema.buyingGuides.subtitle, likeQ),
+          ilike(schema.buyingGuides.category, likeQ)
+        )
+      ))
+      .limit(10);
+    const matchedGuides = rawGuides.map(formatGuideRow);
+
+    const rawComparisons = await db.select()
+      .from(schema.comparisons)
+      .where(and(
+        eq(schema.comparisons.status, 'PUBLISHED'),
+        or(
+          ilike(schema.comparisons.title, likeQ),
+          ilike(schema.comparisons.subtitle, likeQ),
+          ilike(schema.comparisons.category, likeQ)
+        )
+      ))
+      .limit(10);
+    const matchedComparisons = rawComparisons.map(formatComparisonRow);
+
+    const rawArticles = await db.select()
+      .from(schema.articles)
+      .where(and(
+        eq(schema.articles.status, 'PUBLISHED'),
+        or(
+          ilike(schema.articles.title, likeQ),
+          ilike(schema.articles.excerpt, likeQ),
+          ilike(schema.articles.category, likeQ)
+        )
+      ))
+      .limit(10);
+    const matchedArticles = rawArticles.map(formatArticleRow);
+
+    const rawCategories = await db.select()
+      .from(schema.categories)
+      .where(and(
+        eq(schema.categories.status, 'PUBLISHED'),
+        or(
+          ilike(schema.categories.name, likeQ),
+          ilike(schema.categories.description, likeQ)
+        )
+      ))
+      .limit(10);
+    const matchedCategories = rawCategories.map(formatCategoryRow);
+
+    const rawProblems = await db.select()
+      .from(schema.problemCollections)
+      .where(and(
+        eq(schema.problemCollections.status, 'PUBLISHED'),
+        or(
+          ilike(schema.problemCollections.title, likeQ),
+          ilike(schema.problemCollections.tagline, likeQ),
+          ilike(schema.problemCollections.description, likeQ)
+        )
+      ))
+      .limit(10);
+    const matchedProblems = rawProblems.map(formatProblemRow);
+
     res.json({
-      products: [],
-      guides: [],
-      comparisons: [],
-      articles: [],
-      categories: [],
-      problems: []
+      products: matchedProducts,
+      guides: matchedGuides,
+      comparisons: matchedComparisons,
+      articles: matchedArticles,
+      categories: matchedCategories,
+      problems: matchedProblems
     });
-    return;
+  } catch (err: any) {
+    console.error('Public search error:', err);
+    res.status(500).json({ error: 'Search query failed' });
   }
-
-  // Detect price numbers, e.g. "under 500", "under ₹2000"
-  const priceMatch = rawQ.match(/under\s*₹?\s*(\d+)/i) || rawQ.match(/₹\s*(\d+)/i);
-  const maxPrice = priceMatch ? parseInt(priceMatch[1], 10) : null;
-
-  const likeQ = `%${rawQ}%`;
-
-  let productQuery = "SELECT * FROM products WHERE status = 'PUBLISHED' AND (name LIKE ? OR brand LIKE ? OR category LIKE ? OR subcategory LIKE ? OR short_description LIKE ? OR best_for LIKE ?)";
-  const productParams: any[] = [likeQ, likeQ, likeQ, likeQ, likeQ, likeQ];
-
-  if (maxPrice !== null) {
-    productQuery += ' AND price <= ?';
-    productParams.push(maxPrice);
-  }
-  productQuery += ' ORDER BY price ASC LIMIT 20';
-
-  const matchedProducts = db.prepare(productQuery).all(...productParams).map(formatProductRow);
-
-  const matchedGuides = db.prepare("SELECT * FROM buying_guides WHERE status = 'PUBLISHED' AND (title LIKE ? OR subtitle LIKE ? OR category LIKE ?) LIMIT 10")
-    .all(likeQ, likeQ, likeQ).map(formatGuideRow);
-
-  const matchedComparisons = db.prepare("SELECT * FROM comparisons WHERE status = 'PUBLISHED' AND (title LIKE ? OR subtitle LIKE ? OR category LIKE ?) LIMIT 10")
-    .all(likeQ, likeQ, likeQ).map(formatComparisonRow);
-
-  const matchedArticles = db.prepare("SELECT * FROM articles WHERE status = 'PUBLISHED' AND (title LIKE ? OR excerpt LIKE ? OR category LIKE ?) LIMIT 10")
-    .all(likeQ, likeQ, likeQ).map(formatArticleRow);
-
-  const matchedCategories = db.prepare("SELECT * FROM categories WHERE status = 'PUBLISHED' AND (name LIKE ? OR description LIKE ?) LIMIT 10")
-    .all(likeQ, likeQ).map(formatCategoryRow);
-
-  const matchedProblems = db.prepare("SELECT * FROM problem_collections WHERE status = 'PUBLISHED' AND (title LIKE ? OR tagline LIKE ? OR description LIKE ?) LIMIT 10")
-    .all(likeQ, likeQ, likeQ).map(formatProblemRow);
-
-  res.json({
-    products: matchedProducts,
-    guides: matchedGuides,
-    comparisons: matchedComparisons,
-    articles: matchedArticles,
-    categories: matchedCategories,
-    problems: matchedProblems
-  });
 });
 
 // Newsletter Subscription
-publicRouter.post('/subscribe', (req: Request, res: Response) => {
+publicRouter.post('/subscribe', async (req: Request, res: Response) => {
   const { email, source } = req.body;
   if (!email || typeof email !== 'string' || !email.includes('@')) {
     res.status(400).json({ error: 'Valid email address is required.' });
@@ -277,11 +379,18 @@ publicRouter.post('/subscribe', (req: Request, res: Response) => {
   const id = 'sub_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
 
   try {
-    db.prepare(`
-      INSERT INTO newsletter_subscribers (id, email, source, status, created_at)
-      VALUES (?, ?, ?, 'active', ?)
-      ON CONFLICT(email) DO UPDATE SET status = 'active'
-    `).run(id, cleanEmail, source || 'website', now);
+    await db.insert(schema.newsletterSubscribers)
+      .values({
+        id,
+        email: cleanEmail,
+        source: source || 'website',
+        status: 'active',
+        createdAt: now
+      })
+      .onConflictDoUpdate({
+        target: schema.newsletterSubscribers.email,
+        set: { status: 'active' }
+      });
 
     res.json({ success: true, message: 'Thank you for subscribing to NIDPIK!' });
   } catch (error: any) {
@@ -291,21 +400,22 @@ publicRouter.post('/subscribe', (req: Request, res: Response) => {
 });
 
 // Dynamic XML Sitemap
-publicRouter.get('/sitemap.xml', (req: Request, res: Response) => {
-  const host = req.get('host');
-  const baseUrl = process.env.APP_URL || (host ? `${req.protocol}://${host}` : 'https://nidpik.com');
-  const now = new Date().toISOString().split('T')[0];
+publicRouter.get('/sitemap.xml', async (req: Request, res: Response) => {
+  try {
+    const host = req.get('host');
+    const baseUrl = process.env.APP_URL || (host ? `${req.protocol}://${host}` : 'https://nidpik.com');
+    const now = new Date().toISOString().split('T')[0];
 
-  const products = db.prepare("SELECT slug, updated_at FROM products WHERE status = 'PUBLISHED'").all() as any[];
-  const categories = db.prepare("SELECT slug, updated_at FROM categories WHERE status = 'PUBLISHED'").all() as any[];
-  const articles = db.prepare("SELECT slug, updated_at FROM articles WHERE status = 'PUBLISHED'").all() as any[];
-  const guides = db.prepare("SELECT slug, updated_at FROM buying_guides WHERE status = 'PUBLISHED'").all() as any[];
-  const comparisons = db.prepare("SELECT slug, updated_at FROM comparisons WHERE status = 'PUBLISHED'").all() as any[];
-  const reviews = db.prepare("SELECT slug, updated_at FROM reviews WHERE status = 'PUBLISHED'").all() as any[];
-  const problems = db.prepare("SELECT slug, updated_at FROM problem_collections WHERE status = 'PUBLISHED'").all() as any[];
-  const budgets = db.prepare('SELECT slug FROM budget_tiers').all() as any[];
+    const productsList = await db.select({ slug: schema.products.slug, updatedAt: schema.products.updatedAt }).from(schema.products).where(eq(schema.products.status, 'PUBLISHED'));
+    const categoriesList = await db.select({ slug: schema.categories.slug, updatedAt: schema.categories.updatedAt }).from(schema.categories).where(eq(schema.categories.status, 'PUBLISHED'));
+    const articlesList = await db.select({ slug: schema.articles.slug, updatedAt: schema.articles.updatedAt }).from(schema.articles).where(eq(schema.articles.status, 'PUBLISHED'));
+    const guidesList = await db.select({ slug: schema.buyingGuides.slug, updatedAt: schema.buyingGuides.updatedAt }).from(schema.buyingGuides).where(eq(schema.buyingGuides.status, 'PUBLISHED'));
+    const comparisonsList = await db.select({ slug: schema.comparisons.slug, updatedAt: schema.comparisons.updatedAt }).from(schema.comparisons).where(eq(schema.comparisons.status, 'PUBLISHED'));
+    const reviewsList = await db.select({ slug: schema.reviews.slug, updatedAt: schema.reviews.updatedAt }).from(schema.reviews).where(eq(schema.reviews.status, 'PUBLISHED'));
+    const problemsList = await db.select({ slug: schema.problemCollections.slug, updatedAt: schema.problemCollections.updatedAt }).from(schema.problemCollections).where(eq(schema.problemCollections.status, 'PUBLISHED'));
+    const budgetsList = await db.select({ slug: schema.budgetTiers.slug }).from(schema.budgetTiers);
 
-  let xml = `<?xml version="1.0" encoding="UTF-8"?>
+    let xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>${baseUrl}/</loc><lastmod>${now}</lastmod><changefreq>daily</changefreq><priority>1.0</priority></url>
   <url><loc>${baseUrl}/products</loc><lastmod>${now}</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
@@ -317,35 +427,39 @@ publicRouter.get('/sitemap.xml', (req: Request, res: Response) => {
   <url><loc>${baseUrl}/problems</loc><lastmod>${now}</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>
 `;
 
-  for (const b of budgets) {
-    xml += `  <url><loc>${baseUrl}/${b.slug}</loc><lastmod>${now}</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>\n`;
-  }
-  for (const p of products) {
-    xml += `  <url><loc>${baseUrl}/product/${p.slug}</loc><lastmod>${p.updated_at?.split('T')[0] || now}</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>\n`;
-  }
-  for (const c of categories) {
-    xml += `  <url><loc>${baseUrl}/category/${c.slug}</loc><lastmod>${now}</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>\n`;
-  }
-  for (const g of guides) {
-    xml += `  <url><loc>${baseUrl}/buying-guides/${g.slug}</loc><lastmod>${now}</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>\n`;
-  }
-  for (const c of comparisons) {
-    xml += `  <url><loc>${baseUrl}/compare/${c.slug}</loc><lastmod>${now}</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>\n`;
-  }
-  for (const r of reviews) {
-    xml += `  <url><loc>${baseUrl}/reviews/${r.slug}</loc><lastmod>${now}</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>\n`;
-  }
-  for (const a of articles) {
-    xml += `  <url><loc>${baseUrl}/articles/${a.slug}</loc><lastmod>${now}</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>\n`;
-  }
-  for (const pr of problems) {
-    xml += `  <url><loc>${baseUrl}/problems/${pr.slug}</loc><lastmod>${now}</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>\n`;
-  }
+    for (const b of budgetsList) {
+      xml += `  <url><loc>${baseUrl}/${b.slug}</loc><lastmod>${now}</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>\n`;
+    }
+    for (const p of productsList) {
+      xml += `  <url><loc>${baseUrl}/product/${p.slug}</loc><lastmod>${p.updatedAt?.split('T')[0] || now}</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>\n`;
+    }
+    for (const c of categoriesList) {
+      xml += `  <url><loc>${baseUrl}/category/${c.slug}</loc><lastmod>${now}</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>\n`;
+    }
+    for (const g of guidesList) {
+      xml += `  <url><loc>${baseUrl}/buying-guides/${g.slug}</loc><lastmod>${now}</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>\n`;
+    }
+    for (const c of comparisonsList) {
+      xml += `  <url><loc>${baseUrl}/compare/${c.slug}</loc><lastmod>${now}</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>\n`;
+    }
+    for (const r of reviewsList) {
+      xml += `  <url><loc>${baseUrl}/reviews/${r.slug}</loc><lastmod>${now}</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>\n`;
+    }
+    for (const a of articlesList) {
+      xml += `  <url><loc>${baseUrl}/articles/${a.slug}</loc><lastmod>${now}</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>\n`;
+    }
+    for (const pr of problemsList) {
+      xml += `  <url><loc>${baseUrl}/problems/${pr.slug}</loc><lastmod>${now}</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>\n`;
+    }
 
-  xml += '</urlset>';
+    xml += '</urlset>';
 
-  res.header('Content-Type', 'application/xml');
-  res.send(xml);
+    res.header('Content-Type', 'application/xml');
+    res.send(xml);
+  } catch (err: any) {
+    console.error('Sitemap error:', err);
+    res.status(500).send('Error generating sitemap');
+  }
 });
 
 // Dynamic robots.txt

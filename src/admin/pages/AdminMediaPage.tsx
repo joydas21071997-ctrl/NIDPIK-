@@ -27,9 +27,10 @@ export const AdminMediaPage: React.FC = () => {
     try {
       setLoading(true);
       const data = await api.media.getAll(search);
-      setMediaList(data);
+      setMediaList(Array.isArray(data) ? data : []);
     } catch (err: any) {
-      console.error(err);
+      console.warn('API media fetch note:', err);
+      setMediaList([]);
     } finally {
       setLoading(false);
     }
@@ -38,6 +39,8 @@ export const AdminMediaPage: React.FC = () => {
   useEffect(() => {
     loadMedia();
   }, [search]);
+
+  const safeMediaList = Array.isArray(mediaList) ? mediaList : [];
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -127,13 +130,13 @@ export const AdminMediaPage: React.FC = () => {
               className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:outline-none focus:border-blue-500"
             />
           </div>
-          <span className="text-xs font-semibold text-slate-500">{mediaList.length} files</span>
+          <span className="text-xs font-semibold text-slate-500">{safeMediaList.length} files</span>
         </div>
 
         {/* MEDIA GRID */}
         {loading ? (
           <div className="py-24 text-center text-xs text-slate-400">Loading media library...</div>
-        ) : mediaList.length === 0 ? (
+        ) : safeMediaList.length === 0 ? (
           <div className="bg-white p-12 rounded-2xl border border-dashed border-slate-300 text-center space-y-3">
             <ImageIcon className="w-10 h-10 text-slate-300 mx-auto" />
             <p className="text-sm font-bold text-slate-700">No media assets found</p>
@@ -147,7 +150,7 @@ export const AdminMediaPage: React.FC = () => {
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            {mediaList.map((m) => (
+            {safeMediaList.map((m) => (
               <div
                 key={m.id}
                 className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-2xs group flex flex-col justify-between"

@@ -23,7 +23,7 @@ interface Props {
 }
 
 export const AdminProductEditPage: React.FC<Props> = ({ productId }) => {
-  const { navigate, refreshPublicData, categories, merchants } = useApp();
+  const { navigate, refreshPublicData, categories, merchants, products, getProductBySlug } = useApp();
   const isNew = !productId || productId === 'new';
 
   const [loading, setLoading] = useState(!isNew);
@@ -123,11 +123,52 @@ export const AdminProductEditPage: React.FC<Props> = ({ productId }) => {
           }
         })
         .catch((err) => {
-          setError(err.message || 'Product not found');
+          const rawP = (products || []).find(p => p.id === productId || p.slug === productId) || (getProductBySlug ? getProductBySlug(productId) : undefined);
+          const localP = rawP as any;
+          if (localP) {
+            setFormData({
+              name: localP.name || '',
+              slug: localP.slug || '',
+              brand: localP.brand || '',
+              category: localP.category || 'Electronics',
+              categorySlug: localP.categorySlug || 'electronics',
+              subcategory: localP.subcategory || '',
+              price: localP.price ?? 99,
+              oldPrice: localP.oldPrice ?? 0,
+              currency: localP.currency || '₹',
+              budgetTier: localP.budgetTier ?? 99,
+              badge: localP.badge || '',
+              image: localP.image || '',
+              gallery: localP.gallery || [],
+              shortDescription: localP.shortDescription || '',
+              quickVerdict: localP.quickVerdict || '',
+              bestFor: localP.bestFor || '',
+              notIdealFor: localP.notIdealFor || '',
+              features: localP.features || [],
+              specifications: localP.specifications || {},
+              pros: localP.pros || [],
+              cons: localP.cons || [],
+              merchantId: localP.merchant?.id || 'amazon',
+              affiliateUrls: (localP.affiliateUrls && Object.keys(localP.affiliateUrls).length > 0)
+                ? localP.affiliateUrls
+                : (localP.affiliateUrl ? { IN: localP.affiliateUrl } : { IN: '' }),
+              meeshoUrl: localP.meeshoUrl || (localP.affiliateUrls ? localP.affiliateUrls.MEESHO || '' : ''),
+              meeshoPrice: localP.meeshoPrice ?? '',
+              affiliateNetwork: localP.affiliateNetwork || 'Amazon Associates',
+              status: (localP.status as any) || 'PUBLISHED',
+              problemTags: localP.problemTags || [],
+              seoTitle: localP.seoTitle || localP.name || '',
+              seoDescription: localP.seoDescription || localP.shortDescription || '',
+              canonicalUrl: localP.canonicalUrl || '',
+              ogImage: localP.ogImage || localP.image || ''
+            });
+          } else {
+            setError(err.message || 'Product not found');
+          }
         })
         .finally(() => setLoading(false));
     }
-  }, [productId, isNew]);
+  }, [productId, isNew, products]);
 
   const generateSlug = () => {
     if (!formData.name) return;

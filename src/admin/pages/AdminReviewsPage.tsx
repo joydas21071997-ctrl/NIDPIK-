@@ -15,9 +15,9 @@ import {
 } from 'lucide-react';
 
 export const AdminReviewsPage: React.FC = () => {
-  const { refreshPublicData, products, authors } = useApp();
-  const [reviews, setReviews] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { refreshPublicData, products, authors, reviews: appReviews } = useApp();
+  const [reviews, setReviews] = useState<any[]>(Array.isArray(appReviews) ? appReviews : []);
+  const [loading, setLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingReview, setEditingReview] = useState<any | null>(null);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
@@ -40,9 +40,16 @@ export const AdminReviewsPage: React.FC = () => {
     try {
       setLoading(true);
       const data = await api.reviews.getAll();
-      setReviews(data);
+      if (Array.isArray(data)) {
+        setReviews(data);
+      } else if (Array.isArray(appReviews) && appReviews.length > 0) {
+        setReviews(appReviews);
+      }
     } catch (err: any) {
-      console.error(err);
+      console.warn('API reviews fetch note:', err);
+      if (Array.isArray(appReviews) && appReviews.length > 0) {
+        setReviews(appReviews);
+      }
     } finally {
       setLoading(false);
     }
@@ -51,6 +58,10 @@ export const AdminReviewsPage: React.FC = () => {
   useEffect(() => {
     loadReviews();
   }, []);
+
+  const safeReviews = Array.isArray(reviews) && reviews.length > 0
+    ? reviews
+    : (Array.isArray(appReviews) ? appReviews : []);
 
   const openCreateModal = () => {
     setEditingReview(null);
@@ -153,16 +164,16 @@ export const AdminReviewsPage: React.FC = () => {
         )}
 
         <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
-          {loading ? (
+          {loading && safeReviews.length === 0 ? (
             <div className="py-24 text-center text-xs text-slate-400">Loading reviews...</div>
-          ) : reviews.length === 0 ? (
+          ) : safeReviews.length === 0 ? (
             <div className="py-20 text-center space-y-2">
               <Star className="w-8 h-8 text-slate-300 mx-auto" />
               <p className="text-sm font-semibold text-slate-700">No reviews found</p>
             </div>
           ) : (
             <div className="divide-y divide-slate-100">
-              {reviews.map((r) => (
+              {safeReviews.map((r) => (
                 <div key={r.id} className="p-5 flex items-center justify-between gap-4 hover:bg-slate-50/70 transition-colors">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">

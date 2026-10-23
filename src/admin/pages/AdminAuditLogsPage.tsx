@@ -19,9 +19,10 @@ export const AdminAuditLogsPage: React.FC = () => {
     try {
       setLoading(true);
       const data = await api.auditLogs.getAll();
-      setLogs(data);
+      setLogs(Array.isArray(data) ? data : []);
     } catch (err: any) {
-      console.error(err);
+      console.warn('API audit logs fetch note:', err);
+      setLogs([]);
     } finally {
       setLoading(false);
     }
@@ -31,13 +32,28 @@ export const AdminAuditLogsPage: React.FC = () => {
     loadLogs();
   }, []);
 
-  const filtered = logs.filter(l =>
-    !search ||
-    l.user_name?.toLowerCase().includes(search.toLowerCase()) ||
-    l.action?.toLowerCase().includes(search.toLowerCase()) ||
-    l.entity_type?.toLowerCase().includes(search.toLowerCase()) ||
-    l.entity_id?.toLowerCase().includes(search.toLowerCase())
-  );
+  const safeLogs = Array.isArray(logs) ? logs : [];
+
+  const filtered = safeLogs.filter((l) => {
+    if (!l) return false;
+    if (!search) return true;
+    const term = search.toLowerCase();
+    const user = (l.userEmail || l.user_name || l.userName || '').toLowerCase();
+    const action = (l.action || '').toLowerCase();
+    const entityType = (l.entityType || l.entity_type || '').toLowerCase();
+    const entityId = (l.entityId || l.entity_id || '').toLowerCase();
+    return user.includes(term) || action.includes(term) || entityType.includes(term) || entityId.includes(term);
+  });
+
+  const formatDate = (isoString?: string) => {
+    if (!isoString) return 'Recent';
+    try {
+      const d = new Date(isoString);
+      return isNaN(d.getTime()) ? 'Recent' : d.toLocaleString();
+    } catch {
+      return 'Recent';
+    }
+  };
 
   return (
     <AdminLayout
@@ -82,22 +98,22 @@ export const AdminAuditLogsPage: React.FC = () => {
                 {filtered.map((l) => (
                   <tr key={l.id} className="hover:bg-slate-50/70 font-mono">
                     <td className="py-3 px-5 text-[11px] text-slate-500">
-                      {new Date(l.created_at).toLocaleString()}
+                      {formatDate(l.createdAt || l.created_at)}
                     </td>
                     <td className="py-3 px-5 font-bold text-slate-900 font-sans">
-                      {l.user_name || 'System'}
+                      {l.userEmail || l.user_name || l.userName || 'System'}
                     </td>
                     <td className="py-3 px-5 font-sans">
                       <span className="font-semibold text-slate-800">{l.action}</span>
                     </td>
                     <td className="py-3 px-5 text-[11px] text-slate-600">
                       <span className="uppercase text-[10px] bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded font-bold mr-1.5 font-sans">
-                        {l.entity_type}
+                        {l.entityType || l.entity_type || 'SYSTEM'}
                       </span>
-                      {l.entity_id}
+                      {l.entityId || l.entity_id || '—'}
                     </td>
                     <td className="py-3 px-5 text-[11px] text-slate-400">
-                      {l.ip_address || '127.0.0.1'}
+                      {l.ip_address || l.ipAddress || '127.0.0.1'}
                     </td>
                   </tr>
                 ))}

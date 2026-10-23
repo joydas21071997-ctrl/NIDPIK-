@@ -23,8 +23,8 @@ import {
 import { deleteProductFromFirestore } from '../../services/firebaseSync';
 
 export const AdminProductsPage: React.FC = () => {
-  const { navigate, refreshPublicData } = useApp();
-  const [products, setProducts] = useState<any[]>([]);
+  const { navigate, refreshPublicData, products: appProducts } = useApp();
+  const [products, setProducts] = useState<any[]>(appProducts || []);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
@@ -47,9 +47,17 @@ export const AdminProductsPage: React.FC = () => {
       setLoading(true);
       setError(null);
       const data = await api.products.getAll();
-      setProducts(data);
+      if (Array.isArray(data)) {
+        setProducts(data);
+      } else if (appProducts && appProducts.length > 0) {
+        setProducts(appProducts);
+      }
     } catch (err: any) {
-      setError(err.message || 'Failed to load products');
+      if (appProducts && appProducts.length > 0) {
+        setProducts(appProducts);
+      } else {
+        setError(err.message || 'Failed to load products');
+      }
     } finally {
       setLoading(false);
     }
@@ -59,8 +67,17 @@ export const AdminProductsPage: React.FC = () => {
     loadProducts();
   }, []);
 
+  // Sync if AppContext products update from Firestore
+  useEffect(() => {
+    if (appProducts && appProducts.length > 0 && products.length === 0) {
+      setProducts(appProducts);
+    }
+  }, [appProducts]);
+
+  const safeProducts = Array.isArray(products) ? products : (appProducts || []);
+
   // Filter & Sort logic
-  const filteredProducts = products.filter(p => {
+  const filteredProducts = safeProducts.filter(p => {
     const matchesSearch =
       !search ||
       p.name?.toLowerCase().includes(search.toLowerCase()) ||
@@ -84,7 +101,7 @@ export const AdminProductsPage: React.FC = () => {
   });
 
   // Unique categories for filter dropdown
-  const categoriesList = Array.from(new Set(products.map(p => p.categorySlug || p.category))).filter(Boolean);
+  const categoriesList = Array.from(new Set(safeProducts.map(p => p.categorySlug || p.category))).filter(Boolean);
 
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.checked) {
