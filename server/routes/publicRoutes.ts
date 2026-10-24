@@ -15,6 +15,7 @@ import {
   formatProblemRow
 } from './contentRoutes';
 import { formatMerchantRow } from './merchantRoutes';
+import { ensurePostgresInitialized, classifyDatabaseError } from '../initPostgres';
 
 const publicLogoStorage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -42,6 +43,8 @@ export const publicRouter = Router();
 // Returns full live published catalog for instant frontend synchronization
 publicRouter.get('/bootstrap', async (req: Request, res: Response) => {
   try {
+    await ensurePostgresInitialized();
+
     const rawProducts = await db.select().from(schema.products).where(eq(schema.products.status, 'PUBLISHED')).orderBy(desc(schema.products.updatedAt));
     const products = rawProducts.map(formatProductRow);
 
@@ -111,8 +114,17 @@ publicRouter.get('/bootstrap', async (req: Request, res: Response) => {
       serverTime: new Date().toISOString()
     });
   } catch (err: any) {
-    console.error('Public bootstrap error:', err);
-    res.status(500).json({ error: 'Failed to load bootstrap data' });
+    const diag = classifyDatabaseError(err);
+    console.error('[NIDPIK BOOTSTRAP ERROR]', JSON.stringify({
+      ...diag,
+      errorMessage: err?.cause?.message || err?.message || String(err),
+    }));
+    res.status(500).json({
+      error: 'Failed to load bootstrap data',
+      code: diag.code,
+      reason: diag.reason,
+      hint: diag.hint,
+    });
   }
 });
 

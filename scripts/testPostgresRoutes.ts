@@ -51,7 +51,11 @@ async function runIntegrationTests() {
     }
   }
 
-  const adminPassword = process.env.ADMIN_OWNER_PASSWORD || (await import('fs')).readFileSync('.admin_secret.tmp', 'utf-8').trim();
+  if (!process.env.ADMIN_OWNER_PASSWORD) {
+    const crypto = await import('crypto');
+    process.env.ADMIN_OWNER_PASSWORD = crypto.randomBytes(24).toString('hex');
+  }
+  const adminPassword = process.env.ADMIN_OWNER_PASSWORD;
 
   // 1. Admin Login
   await testStep('POST /api/auth/login (Admin Credentials)', async () => {
