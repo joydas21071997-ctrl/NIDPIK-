@@ -7,9 +7,6 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 import { initDatabase } from './server/db';
-import { ensurePostgresInitialized, classifyDatabaseError } from './server/initPostgres';
-import { getResolvedDbConfig, db } from './src/db/index';
-import { sql } from 'drizzle-orm';
 import { authRouter } from './server/routes/authRoutes';
 import { productRouter } from './server/routes/productRoutes';
 import { categoryRouter } from './server/routes/categoryRoutes';
@@ -24,22 +21,11 @@ async function startServer() {
   const app = express();
   const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
-  // Database mode check
-  const isCloudSqlActive = Boolean(process.env.SQL_HOST || process.env.INSTANCE_CONNECTION_NAME);
+  // Database mode check (SQL removed)
+  const isCloudSqlActive = false;
 
-  if (isCloudSqlActive) {
-    const cfg = getResolvedDbConfig();
-    console.log(
-      `[NIDPIK] Database Mode: Cloud SQL PostgreSQL (db="${cfg.database}", user="${cfg.user || 'unset'}", type=${cfg.isSocket ? 'unix_socket' : 'tcp'})`
-    );
-    ensurePostgresInitialized().catch((err) => {
-      const diag = classifyDatabaseError(err);
-      console.error('[NIDPIK] PostgreSQL startup initialization warning:', JSON.stringify(diag));
-    });
-  } else {
-    console.log('[NIDPIK] Database Mode: Local SQLite fallback');
-    initDatabase();
-  }
+  console.log('[NIDPIK] Database Mode: Firestore Only');
+  initDatabase();
 
   // Middleware
   app.use(express.json({ limit: '10mb' }));
@@ -77,43 +63,13 @@ async function startServer() {
 
   // Health check
   app.get('/api/health', async (req, res) => {
-    if (!isCloudSqlActive) {
-      res.json({
-        status: 'ok',
-        service: 'nidpik-backend',
-        database: 'SQLite Local',
-        databaseConnected: true,
-        time: new Date().toISOString()
-      });
-      return;
-    }
-
-    try {
-      await ensurePostgresInitialized();
-      const probe = await db.execute(sql`SELECT current_database() AS db_name, current_user AS db_user;`);
-      const row = (probe.rows?.[0] || {}) as any;
-      res.json({
-        status: 'ok',
-        service: 'nidpik-backend',
-        database: 'Cloud SQL PostgreSQL',
-        databaseConnected: true,
-        databaseName: row.db_name,
-        databaseUser: row.db_user,
-        time: new Date().toISOString()
-      });
-    } catch (err: any) {
-      const diag = classifyDatabaseError(err);
-      res.status(503).json({
-        status: 'degraded',
-        service: 'nidpik-backend',
-        database: 'Cloud SQL PostgreSQL',
-        databaseConnected: false,
-        code: diag.code,
-        reason: diag.reason,
-        hint: diag.hint,
-        time: new Date().toISOString()
-      });
-    }
+    res.json({
+      status: 'ok',
+      service: 'nidpik-backend',
+      database: 'Firestore',
+      databaseConnected: true,
+      time: new Date().toISOString()
+    });
   });
 
   // Vite middleware in dev or static files in production

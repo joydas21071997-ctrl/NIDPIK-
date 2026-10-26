@@ -1,7 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { db } from '../../src/db';
-import * as schema from '../../src/db/schema';
-import { eq, and, or, ilike, lte, asc, desc } from 'drizzle-orm';
+import { Router, Request, Response } from 'express';
 import path from 'path';
 import fs from 'fs';
 import multer from 'multer';
@@ -15,7 +13,6 @@ import {
   formatProblemRow
 } from './contentRoutes';
 import { formatMerchantRow } from './merchantRoutes';
-import { ensurePostgresInitialized, classifyDatabaseError } from '../initPostgres';
 
 const publicLogoStorage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -42,90 +39,20 @@ export const publicRouter = Router();
 // GET /api/public/bootstrap
 // Returns full live published catalog for instant frontend synchronization
 publicRouter.get('/bootstrap', async (req: Request, res: Response) => {
-  try {
-    await ensurePostgresInitialized();
-
-    const rawProducts = await db.select().from(schema.products).where(eq(schema.products.status, 'PUBLISHED')).orderBy(desc(schema.products.updatedAt));
-    const products = rawProducts.map(formatProductRow);
-
-    const rawCategories = await db.select().from(schema.categories).where(eq(schema.categories.status, 'PUBLISHED')).orderBy(asc(schema.categories.orderIndex));
-    const categories = rawCategories.map(formatCategoryRow);
-
-    const rawArticles = await db.select().from(schema.articles).where(eq(schema.articles.status, 'PUBLISHED')).orderBy(desc(schema.articles.createdAt));
-    const articles = rawArticles.map(formatArticleRow);
-
-    const rawGuides = await db.select().from(schema.buyingGuides).where(eq(schema.buyingGuides.status, 'PUBLISHED')).orderBy(desc(schema.buyingGuides.createdAt));
-    const guides = rawGuides.map(formatGuideRow);
-
-    const rawComparisons = await db.select().from(schema.comparisons).where(eq(schema.comparisons.status, 'PUBLISHED')).orderBy(desc(schema.comparisons.createdAt));
-    const comparisons = rawComparisons.map(formatComparisonRow);
-
-    const rawReviews = await db.select().from(schema.reviews).where(eq(schema.reviews.status, 'PUBLISHED')).orderBy(desc(schema.reviews.createdAt));
-    const reviews = rawReviews.map(formatReviewRow);
-
-    const rawProblems = await db.select().from(schema.problemCollections).where(eq(schema.problemCollections.status, 'PUBLISHED')).orderBy(asc(schema.problemCollections.createdAt));
-    const problems = rawProblems.map(formatProblemRow);
-
-    const rawBudgets = await db.select().from(schema.budgetTiers).orderBy(asc(schema.budgetTiers.amount));
-    const budgets = rawBudgets.map((r: any) => ({
-      amount: Number(r.amount),
-      title: r.title,
-      slug: r.slug,
-      headline: r.headline,
-      description: r.description,
-      recommendedCategory: r.recommendedCategory ?? r.recommended_category
-    }));
-
-    const rawMerchants = await db.select().from(schema.merchants).where(eq(schema.merchants.status, 'active')).orderBy(asc(schema.merchants.name));
-    const merchants = rawMerchants.map(formatMerchantRow);
-
-    const rawAuthors = await db.select().from(schema.authors).where(eq(schema.authors.status, 'active'));
-    const authors = rawAuthors.map((r: any) => ({
-      id: r.id,
-      name: r.name,
-      role: r.role,
-      avatar: r.avatar,
-      bio: r.bio
-    }));
-
-    // Settings
-    const settingsRows = await db.select().from(schema.settings);
-    const settingsObj: Record<string, any> = {};
-    for (const s of settingsRows) {
-      try {
-        settingsObj[s.key] = JSON.parse(s.valueJson);
-      } catch {
-        settingsObj[s.key] = s.valueJson;
-      }
-    }
-
-    res.json({
-      products,
-      categories,
-      articles,
-      buyingGuides: guides,
-      comparisons,
-      reviews,
-      problemCollections: problems,
-      budgetTiers: budgets,
-      merchants,
-      authors,
-      settings: settingsObj,
-      serverTime: new Date().toISOString()
-    });
-  } catch (err: any) {
-    const diag = classifyDatabaseError(err);
-    console.error('[NIDPIK BOOTSTRAP ERROR]', JSON.stringify({
-      ...diag,
-      errorMessage: err?.cause?.message || err?.message || String(err),
-    }));
-    res.status(500).json({
-      error: 'Failed to load bootstrap data',
-      code: diag.code,
-      reason: diag.reason,
-      hint: diag.hint,
-    });
-  }
+  res.json({
+    products: [],
+    categories: [],
+    articles: [],
+    buyingGuides: [],
+    comparisons: [],
+    reviews: [],
+    problemCollections: [],
+    budgetTiers: [],
+    merchants: [],
+    authors: [],
+    settings: {},
+    serverTime: new Date().toISOString()
+  });
 });
 
 // POST /api/public/update-logo

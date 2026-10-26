@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
-import { eq, or } from 'drizzle-orm';
-import { db } from '../../src/db/index';
-import * as schema from '../../src/db/schema';
+// import { eq, or } from 'drizzle-orm';
+// import { db } from '../../src/db/index';
+// import * as schema from '../../src/db/schema';
 import { verifyPassword, hashPassword } from '../crypto';
 import { createSession, deleteSession, authenticate, AuthenticatedRequest, logAudit } from '../auth';
 
