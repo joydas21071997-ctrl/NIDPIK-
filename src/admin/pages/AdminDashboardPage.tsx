@@ -97,68 +97,36 @@ export const AdminDashboardPage: React.FC = () => {
 
   const statCards = [
     {
-      title: 'Total Products',
-      value: summary?.products?.total ?? 0,
-      sub: `${summary?.products?.published ?? 0} published • ${summary?.products?.draft ?? 0} drafts`,
-      icon: Package,
-      color: 'bg-blue-500/10 text-blue-600 border-blue-200',
-      action: () => navigate('/admin/products')
-    },
-    {
-      title: 'Affiliate Clicks',
-      value: summary?.counts?.clicks ?? 0,
-      sub: 'Real tracked merchant outbound clicks',
-      icon: MousePointerClick,
-      color: 'bg-emerald-500/10 text-emerald-600 border-emerald-200',
-      action: () => navigate('/admin/analytics')
-    },
-    {
-      title: 'Buying Guides',
-      value: summary?.counts?.guides ?? 0,
-      sub: 'Comprehensive buying playbooks',
-      icon: BookOpen,
-      color: 'bg-indigo-500/10 text-indigo-600 border-indigo-200',
-      action: () => navigate('/admin/guides')
-    },
-    {
-      title: 'Editorial Articles',
+      title: 'Blog Articles',
       value: summary?.counts?.articles ?? 0,
-      sub: 'Guides, tips, and insights',
+      sub: 'Published affiliate blog posts & guides',
       icon: FileText,
       color: 'bg-amber-500/10 text-amber-600 border-amber-200',
       action: () => navigate('/admin/articles')
     },
     {
-      title: 'Head-to-Head Comparisons',
-      value: summary?.counts?.comparisons ?? 0,
-      sub: 'Feature & spec breakdowns',
-      icon: Scale,
+      title: 'Categories',
+      value: summary?.counts?.categories ?? 0,
+      sub: 'Active blog categories',
+      icon: Layers,
+      color: 'bg-blue-500/10 text-blue-600 border-blue-200',
+      action: () => navigate('/admin/categories')
+    },
+    {
+      title: 'Affiliate Clicks',
+      value: summary?.counts?.clicks ?? 0,
+      sub: 'Tracked outbound affiliate clicks',
+      icon: MousePointerClick,
+      color: 'bg-emerald-500/10 text-emerald-600 border-emerald-200',
+      action: () => navigate('/admin/analytics')
+    },
+    {
+      title: 'Subscribers',
+      value: summary?.counts?.subscribers ?? 0,
+      sub: 'Newsletter & reader signups',
+      icon: Mail,
       color: 'bg-purple-500/10 text-purple-600 border-purple-200',
-      action: () => navigate('/admin/comparisons')
-    },
-    {
-      title: 'In-Depth Reviews',
-      value: summary?.counts?.reviews ?? 0,
-      sub: 'Hands-on ratings and verdicts',
-      icon: Star,
-      color: 'bg-rose-500/10 text-rose-600 border-rose-200',
-      action: () => navigate('/admin/reviews')
-    },
-    {
-      title: 'Problem Solvers',
-      value: summary?.counts?.problems ?? 0,
-      sub: 'Problem-first lifestyle picks',
-      icon: Zap,
-      color: 'bg-cyan-500/10 text-cyan-600 border-cyan-200',
-      action: () => navigate('/admin/problems')
-    },
-    {
-      title: 'Active Merchants',
-      value: summary?.counts?.merchants ?? 0,
-      sub: 'Amazon, Flipkart, Croma, etc.',
-      icon: Store,
-      color: 'bg-orange-500/10 text-orange-600 border-orange-200',
-      action: () => navigate('/admin/merchants')
+      action: () => navigate('/admin/subscribers')
     }
   ];
 

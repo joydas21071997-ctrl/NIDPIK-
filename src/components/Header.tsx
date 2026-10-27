@@ -4,42 +4,31 @@ import { useApp } from '../context/AppContext';
 import {
   Search,
   Heart,
-  Scale,
   Menu,
   X,
   ChevronDown,
   Mail,
   User,
-  Sparkles,
-  CheckCircle2
+  Sparkles
 } from 'lucide-react';
 import { categories } from '../data/categories';
-import { budgetTiers } from '../data/budgetTiers';
 import { SubscribeModal } from './SubscribeModal';
 import { AuthModal } from './AuthModal';
 import { RegionSelector } from './RegionSelector';
-import { COUNTRIES } from '../context/AppContext';
 
 export const Header: React.FC = () => {
   const {
     navigate,
     currentPath,
     setSearchModalOpen,
-    savedProductIds,
-    compareProductIds,
-    selectedCountry,
-    setSelectedCountry,
-    formatPrice
+    savedProductIds
   } = useApp();
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [categoriesDropdown, setCategoriesDropdown] = useState(false);
-  const [budgetDropdown, setBudgetDropdown] = useState(false);
   const [subscribeModalOpen, setSubscribeModalOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [userEmail, setUserEmail] = useState<string | null>(null);
-
-
 
   useEffect(() => {
     setUserEmail(localStorage.getItem('nidpik_user_email'));
@@ -55,7 +44,6 @@ export const Header: React.FC = () => {
     navigate(path);
     setMobileMenuOpen(false);
     setCategoriesDropdown(false);
-    setBudgetDropdown(false);
   };
 
   return (
@@ -69,8 +57,8 @@ export const Header: React.FC = () => {
               <Logo size="md" showTagline={false} />
             </div>
 
-            {/* ZONE 2: PRIMARY NAVIGATION LINKS (Desktop) */}
-            <nav className="hidden lg:flex items-center space-x-5 text-sm font-medium text-slate-700">
+            {/* ZONE 2: PRIMARY NAVIGATION LINKS (Desktop - Pure Affiliate Blog) */}
+            <nav className="hidden lg:flex items-center space-x-6 text-sm font-medium text-slate-700">
               <a
                 href="/"
                 onClick={(e) => {
@@ -138,87 +126,6 @@ export const Header: React.FC = () => {
                 )}
               </div>
 
-              {/* Budget Engine Dropdown */}
-              <div
-                className="relative"
-                onMouseEnter={() => setBudgetDropdown(true)}
-                onMouseLeave={() => setBudgetDropdown(false)}
-              >
-                <button
-                  onClick={() => handleNavClick('/best-under-99')}
-                  className={`inline-flex items-center gap-1 transition-colors py-1 cursor-pointer ${
-                    currentPath.includes('/best-under-')
-                      ? 'text-blue-600 font-bold'
-                      : 'hover:text-blue-600'
-                  }`}
-                >
-                  Under ₹99
-                  <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-                </button>
-
-                {budgetDropdown && (
-                  <div className="absolute top-full left-0 w-56 pt-2 shadow-xl z-50">
-                    <div className="bg-white border border-slate-200 rounded-xl p-2 shadow-lg">
-                      <div className="text-[10px] font-bold text-slate-400 px-3 py-1.5 uppercase tracking-wider">
-                        Discover by Price
-                      </div>
-                      {budgetTiers.map((tier) => (
-                        <a
-                          key={tier.slug}
-                          href={`/${tier.slug}`}
-                          onClick={(e) => {
-                            e.preventDefault();
-                            handleNavClick(`/${tier.slug}`);
-                          }}
-                          className="flex items-center justify-between px-3 py-1.5 text-xs text-slate-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors"
-                        >
-                          <span className="font-semibold">{`Under ${formatPrice(tier.amount)}`}</span>
-                        </a>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <a
-                href="/buying-guides"
-                onClick={(e) => {
-                  e.preventDefault();
-                  handleNavClick('/buying-guides');
-                }}
-                className={`transition-colors py-1 ${
-                  isActive('/buying-guides') ? 'text-blue-600 font-bold' : 'hover:text-blue-600'
-                }`}
-              >
-                Buying Guides
-              </a>
-
-              <a
-                href="/compare"
-                onClick={(e) => {
-                  e.preventDefault();
-                  handleNavClick('/compare');
-                }}
-                className={`transition-colors py-1 ${
-                  isActive('/compare') ? 'text-blue-600 font-bold' : 'hover:text-blue-600'
-                }`}
-              >
-                Comparisons
-              </a>
-
-              <a
-                href="/reviews"
-                onClick={(e) => {
-                  e.preventDefault();
-                  handleNavClick('/reviews');
-                }}
-                className={`transition-colors py-1 ${
-                  isActive('/reviews') ? 'text-blue-600 font-bold' : 'hover:text-blue-600'
-                }`}
-              >
-                Reviews
-              </a>
-
               <a
                 href="/articles"
                 onClick={(e) => {
@@ -229,19 +136,41 @@ export const Header: React.FC = () => {
                   isActive('/articles') ? 'text-blue-600 font-bold' : 'hover:text-blue-600'
                 }`}
               >
-                Articles
+                Articles &amp; Blog
+              </a>
+
+              <a
+                href="/about"
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleNavClick('/about');
+                }}
+                className={`transition-colors py-1 ${
+                  isActive('/about') ? 'text-blue-600 font-bold' : 'hover:text-blue-600'
+                }`}
+              >
+                About
+              </a>
+
+              <a
+                href="/contact"
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleNavClick('/contact');
+                }}
+                className={`transition-colors py-1 ${
+                  isActive('/contact') ? 'text-blue-600 font-bold' : 'hover:text-blue-600'
+                }`}
+              >
+                Contact
               </a>
             </nav>
 
-            {/* ZONE 3: ACTIONS (SEARCH + COUNTRY + SUBSCRIBE + USER + SAVED + MOBILE TRIGGER) */}
+            {/* ZONE 3: ACTIONS */}
             <div className="flex items-center gap-1.5 sm:gap-2">
 
               {/* Market / Country Selector */}
               <RegionSelector />
-
-
-
-
 
               {/* Login / Profile Button */}
               <button
@@ -256,27 +185,12 @@ export const Header: React.FC = () => {
                 )}
               </button>
 
-              {/* Compare Counter */}
-              {compareProductIds.length > 0 && (
-                <button
-                  onClick={() => handleNavClick('/compare')}
-                  className="relative p-2 text-slate-600 hover:text-blue-600 rounded-lg hover:bg-slate-100 transition-colors"
-                  title={`Compare ${compareProductIds.length} products`}
-                  aria-label={`Compare ${compareProductIds.length} products`}
-                >
-                  <Scale className="w-4 h-4 text-blue-600" />
-                  <span className="absolute -top-1 -right-1 flex items-center justify-center w-4 h-4 text-[10px] font-bold text-white bg-blue-600 rounded-full">
-                    {compareProductIds.length}
-                  </span>
-                </button>
-              )}
-
               {/* Saved Wishlist Button */}
               <button
                 onClick={() => handleNavClick('/saved')}
                 className="relative p-2 text-slate-600 hover:text-blue-600 rounded-lg hover:bg-slate-100 transition-colors"
-                title="Saved Products"
-                aria-label="Saved products"
+                title="Saved Articles"
+                aria-label="Saved articles"
               >
                 <Heart className={`w-4 h-4 ${savedProductIds.length > 0 ? 'text-rose-500 fill-rose-500' : 'text-slate-600'}`} />
                 {savedProductIds.length > 0 && (
@@ -310,7 +224,7 @@ export const Header: React.FC = () => {
               className="flex items-center gap-2 p-2.5 bg-slate-100 rounded-xl text-slate-600 text-xs font-medium cursor-pointer"
             >
               <Search className="w-4 h-4 text-blue-600" />
-              <span>Search products, budget under ₹, or guides...</span>
+              <span>Search articles, guides, or topics...</span>
             </div>
 
             {/* Quick Email Subscribe Box Inside Mobile Menu */}
@@ -325,7 +239,7 @@ export const Header: React.FC = () => {
                 </span>
               </div>
               <p className="text-[11px] text-slate-600 mb-2">
-                Handpicked tested picks &amp; price drops sent to your inbox.
+                Handpicked affiliate reviews &amp; buying guides sent to your inbox.
               </p>
               <button
                 onClick={() => {
@@ -358,7 +272,7 @@ export const Header: React.FC = () => {
               </button>
             </div>
 
-            <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400 px-1">Main Sections</div>
+            <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400 px-1">Main Menu</div>
             <div className="grid grid-cols-2 gap-2 text-xs font-semibold">
               <button
                 onClick={() => handleNavClick('/')}
@@ -367,46 +281,34 @@ export const Header: React.FC = () => {
                 🏠 Home
               </button>
               <button
-                onClick={() => handleNavClick('/products')}
-                className={`p-2.5 text-left rounded-xl transition-colors ${isActive('/products') ? 'bg-blue-50 text-blue-600 font-bold' : 'bg-slate-50 text-slate-700'}`}
-              >
-                📦 All Products
-              </button>
-              <button
                 onClick={() => handleNavClick('/categories')}
                 className={`p-2.5 text-left rounded-xl transition-colors ${isActive('/categories') ? 'bg-blue-50 text-blue-600 font-bold' : 'bg-slate-50 text-slate-700'}`}
               >
                 📂 Categories
               </button>
               <button
-                onClick={() => handleNavClick('/buying-guides')}
-                className={`p-2.5 text-left rounded-xl transition-colors ${isActive('/buying-guides') ? 'bg-blue-50 text-blue-600 font-bold' : 'bg-slate-50 text-slate-700'}`}
-              >
-                📖 Buying Guides
-              </button>
-              <button
-                onClick={() => handleNavClick('/compare')}
-                className={`p-2.5 text-left rounded-xl transition-colors ${isActive('/compare') ? 'bg-blue-50 text-blue-600 font-bold' : 'bg-slate-50 text-slate-700'}`}
-              >
-                ⚖️ Comparisons
-              </button>
-              <button
-                onClick={() => handleNavClick('/reviews')}
-                className={`p-2.5 text-left rounded-xl transition-colors ${isActive('/reviews') ? 'bg-blue-50 text-blue-600 font-bold' : 'bg-slate-50 text-slate-700'}`}
-              >
-                ⭐ Reviews
-              </button>
-              <button
                 onClick={() => handleNavClick('/articles')}
                 className={`p-2.5 text-left rounded-xl transition-colors ${isActive('/articles') ? 'bg-blue-50 text-blue-600 font-bold' : 'bg-slate-50 text-slate-700'}`}
               >
-                📝 Articles
+                📝 Blog &amp; Articles
+              </button>
+              <button
+                onClick={() => handleNavClick('/about')}
+                className={`p-2.5 text-left rounded-xl transition-colors ${isActive('/about') ? 'bg-blue-50 text-blue-600 font-bold' : 'bg-slate-50 text-slate-700'}`}
+              >
+                ℹ️ About
+              </button>
+              <button
+                onClick={() => handleNavClick('/contact')}
+                className={`p-2.5 text-left rounded-xl transition-colors ${isActive('/contact') ? 'bg-blue-50 text-blue-600 font-bold' : 'bg-slate-50 text-slate-700'}`}
+              >
+                📞 Contact
               </button>
               <button
                 onClick={() => handleNavClick('/saved')}
                 className={`p-2.5 text-left rounded-xl transition-colors ${isActive('/saved') ? 'bg-blue-50 text-blue-600 font-bold' : 'bg-slate-50 text-slate-700'}`}
               >
-                ❤️ Saved ({savedProductIds.length})
+                ❤️ Saved
               </button>
             </div>
 
@@ -423,24 +325,6 @@ export const Header: React.FC = () => {
                     className="shrink-0 px-3 py-1.5 text-xs font-semibold bg-slate-100 hover:bg-blue-50 hover:text-blue-600 text-slate-700 rounded-lg transition-colors whitespace-nowrap"
                   >
                     {cat.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Budget Quick Filters */}
-            <div className="pt-2 border-t border-slate-100">
-              <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400 px-1 mb-2">
-                Best Under ₹ Price Finder
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                {budgetTiers.map((tier) => (
-                  <button
-                    key={tier.slug}
-                    onClick={() => handleNavClick(`/${tier.slug}`)}
-                    className="px-2.5 py-1 text-xs font-bold bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-700 rounded-lg transition-colors"
-                  >
-                    ₹{tier.amount}
                   </button>
                 ))}
               </div>

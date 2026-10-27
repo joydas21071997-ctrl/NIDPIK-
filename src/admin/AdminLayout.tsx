@@ -57,24 +57,11 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
 
   const navItems = [
     { label: 'Dashboard', path: '/admin', icon: LayoutDashboard },
-    { label: 'Products', path: '/admin/products', icon: Package },
+    { label: 'Blog Articles', path: '/admin/articles', icon: FileText },
     { label: 'Categories', path: '/admin/categories', icon: Layers },
-    { label: 'Articles', path: '/admin/articles', icon: FileText },
-    { label: 'Buying Guides', path: '/admin/guides', icon: BookOpen },
-    { label: 'Comparisons', path: '/admin/comparisons', icon: Scale },
-    { label: 'Reviews', path: '/admin/reviews', icon: Star },
-    { label: 'Problem Solver', path: '/admin/problems', icon: Zap },
-    { label: 'Budget Tiers', path: '/admin/budgets', icon: Tag },
-    { label: 'Merchants', path: '/admin/merchants', icon: Store },
-    { label: 'Affiliate Links', path: '/admin/affiliate-links', icon: Link2 },
-    { label: 'Media Library', path: '/admin/media', icon: ImageIcon },
-    { label: 'Authors', path: '/admin/authors', icon: UserCheck },
     { label: 'Subscribers', path: '/admin/subscribers', icon: Mail },
-    { label: 'Admin Users', path: '/admin/users', icon: Users, roles: ['OWNER', 'ADMIN'] },
     { label: 'Analytics', path: '/admin/analytics', icon: BarChart3 },
-    { label: 'SEO Config', path: '/admin/seo', icon: Globe },
-    { label: 'Site Settings', path: '/admin/settings', icon: Settings },
-    { label: 'Audit Logs', path: '/admin/audit-logs', icon: ClipboardList, roles: ['OWNER', 'ADMIN'] }
+    { label: 'Site Settings', path: '/admin/settings', icon: Settings }
   ];
 
   const handleNavClick = (path: string) => {

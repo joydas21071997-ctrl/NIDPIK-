@@ -34,27 +34,27 @@ export const CategoryPills: React.FC<CategoryPillsProps> = ({
   const getIcon = (name: string) => {
     switch (name) {
       case 'Smartphone':
-        return <Smartphone className="w-5 h-5 text-blue-600" />;
+        return <Smartphone className="w-4 h-4 text-blue-600" />;
       case 'CookingPot':
-        return <CookingPot className="w-5 h-5 text-amber-600" />;
+        return <CookingPot className="w-4 h-4 text-amber-600" />;
       case 'Sparkles':
-        return <Sparkles className="w-5 h-5 text-rose-500" />;
+        return <Sparkles className="w-4 h-4 text-rose-500" />;
       case 'Dumbbell':
-        return <Dumbbell className="w-5 h-5 text-emerald-600" />;
+        return <Dumbbell className="w-4 h-4 text-emerald-600" />;
       case 'Luggage':
-        return <Luggage className="w-5 h-5 text-indigo-600" />;
+        return <Luggage className="w-4 h-4 text-indigo-600" />;
       case 'Shirt':
-        return <Shirt className="w-5 h-5 text-purple-600" />;
+        return <Shirt className="w-4 h-4 text-purple-600" />;
       case 'Briefcase':
-        return <Briefcase className="w-5 h-5 text-slate-700" />;
+        return <Briefcase className="w-4 h-4 text-slate-700" />;
       case 'PackageCheck':
-        return <PackageCheck className="w-5 h-5 text-teal-600" />;
+        return <PackageCheck className="w-4 h-4 text-teal-600" />;
       case 'Home':
-        return <Home className="w-5 h-5 text-sky-600" />;
+        return <Home className="w-4 h-4 text-sky-600" />;
       case 'BadgePercent':
-        return <Tag className="w-5 h-5 text-blue-600" />;
+        return <Tag className="w-4 h-4 text-blue-600" />;
       default:
-        return <LayoutGrid className="w-5 h-5 text-slate-600" />;
+        return <LayoutGrid className="w-4 h-4 text-slate-600" />;
     }
   };
 
@@ -173,7 +173,7 @@ export const CategoryPills: React.FC<CategoryPillsProps> = ({
         ref={scrollRef}
         tabIndex={0}
         aria-label="Categories horizontal list"
-        className="flex items-center gap-2.5 overflow-x-auto no-scrollbar py-2 px-1 scroll-smooth snap-x snap-mandatory focus:outline-none"
+        className="header-category-container flex items-center gap-2 overflow-x-auto no-scrollbar py-1 px-1 scroll-smooth shrink-0 focus:outline-none"
         style={{ WebkitOverflowScrolling: 'touch' }}
       >
         {categories.map((cat) => {
@@ -182,25 +182,16 @@ export const CategoryPills: React.FC<CategoryPillsProps> = ({
             <button
               key={cat.id}
               onClick={() => handleCategoryClick(cat.slug)}
-              className={`snap-start group shrink-0 flex flex-col items-center justify-center p-3 rounded-2xl border transition-all text-center w-[100px] sm:w-[112px] cursor-pointer select-none ${
+              className={`snap-start group shrink-0 inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl border transition-all cursor-pointer select-none whitespace-nowrap ${
                 isCurrent
-                  ? 'bg-blue-50/90 border-blue-500 shadow-xs ring-1 ring-blue-500/20'
-                  : 'bg-white border-slate-200 hover:border-blue-300 hover:shadow-xs active:scale-95'
+                  ? 'bg-blue-600 border-blue-600 text-white shadow-xs'
+                  : 'bg-white border-slate-200 text-slate-700 hover:border-blue-300 hover:bg-slate-50'
               }`}
             >
-              <div
-                className={`w-11 h-11 rounded-xl flex items-center justify-center mb-2 transition-colors ${getBgTint(
-                  cat.iconName
-                )}`}
-              >
+              <span className={isCurrent ? 'text-white' : 'text-slate-600 group-hover:text-blue-600'}>
                 {getIcon(cat.iconName)}
-              </div>
-              <span
-                className={`text-xs font-semibold leading-tight line-clamp-1 w-full px-1 ${
-                  isCurrent ? 'text-blue-700 font-bold' : 'text-slate-800 group-hover:text-blue-600'
-                }`}
-                title={cat.name}
-              >
+              </span>
+              <span className="text-xs font-semibold">
                 {cat.name}
               </span>
             </button>
@@ -210,14 +201,10 @@ export const CategoryPills: React.FC<CategoryPillsProps> = ({
         {/* View All Categories Chip */}
         <button
           onClick={() => navigate('/categories')}
-          className="snap-start group shrink-0 flex flex-col items-center justify-center p-3 rounded-2xl border bg-white border-slate-200 hover:border-blue-300 hover:shadow-xs active:scale-95 transition-all text-center w-[100px] sm:w-[112px] cursor-pointer select-none"
+          className="snap-start group shrink-0 inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl border bg-white border-slate-200 text-slate-700 hover:border-blue-300 hover:bg-slate-50 transition-all cursor-pointer select-none whitespace-nowrap"
         >
-          <div className="w-11 h-11 rounded-xl flex items-center justify-center mb-2 bg-slate-50 group-hover:bg-blue-50 transition-colors">
-            <LayoutGrid className="w-5 h-5 text-slate-700 group-hover:text-blue-600" />
-          </div>
-          <span className="text-xs font-semibold text-slate-800 group-hover:text-blue-600 leading-tight">
-            All ({categories.length})
-          </span>
+          <LayoutGrid className="w-4 h-4 text-slate-500 group-hover:text-blue-600" />
+          <span className="text-xs font-semibold">All Categories</span>
         </button>
       </div>
     </div>

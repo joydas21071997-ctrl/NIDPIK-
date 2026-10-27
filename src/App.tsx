@@ -3,9 +3,6 @@ import { AppProvider, useApp } from './context/AppContext';
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
 import { SearchModal } from './components/SearchModal';
-import { CompareTray } from './components/CompareTray';
-import { AffiliateModal } from './components/AffiliateModal';
-import { AiAdvisorModal } from './components/AiAdvisorModal';
 import { ErrorBoundary } from './components/ErrorBoundary';
 
 import { HomePage } from './pages/HomePage';
@@ -269,10 +266,7 @@ const AppShell: React.FC = () => {
         <RouterView />
       </main>
       <Footer />
-      <CompareTray />
       <SearchModal />
-      <AiAdvisorModal />
-      <AffiliateModal />
     </div>
   );
 };
